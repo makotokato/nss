@@ -10,12 +10,18 @@
 
 #define SHA1_INPUT_LEN 64
 
-#if defined(IS_64) && !defined(__sparc)
+#if defined(IS_64) && !defined(__sparc) && !defined(__aarch64__)
 typedef PRUint64 SHA_HW_t;
 #define SHA1_USING_64_BIT 1
 #else
 typedef PRUint32 SHA_HW_t;
 #endif
+
+struct SHA1ContextStr;
+
+typedef void (*sha1_compress_t)(struct SHA1ContextStr *);
+typedef void (*sha1_update_t)(struct SHA1ContextStr *, const unsigned char *,
+                              unsigned int);
 
 struct SHA1ContextStr {
     union {
@@ -24,6 +30,8 @@ struct SHA1ContextStr {
     } u;
     PRUint64 size;  /* count of hashed bytes. */
     SHA_HW_t H[22]; /* 5 state variables, 16 tmp values, 1 extra */
+    sha1_compress_t compress;
+    sha1_update_t update;
 };
 
 #if defined(_MSC_VER)

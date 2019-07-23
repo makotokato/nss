@@ -138,12 +138,13 @@ CheckARMSupport()
     char *disable_arm_neon = PR_GetEnvSecure("NSS_DISABLE_ARM_NEON");
     char *disable_hw_aes = PR_GetEnvSecure("NSS_DISABLE_HW_AES");
     char *disable_pmull = PR_GetEnvSecure("NSS_DISABLE_PMULL");
+    char *disable_sha1 = PR_GetEnvSecure("NSS_DISABLE_SHA1");
     char *disable_sha2 = PR_GetEnvSecure("NSS_DISABLE_SHA2");
     if (getauxval) {
         long hwcaps = getauxval(AT_HWCAP);
         arm_aes_support_ = hwcaps & HWCAP_AES && disable_hw_aes == NULL;
         arm_pmull_support_ = hwcaps & HWCAP_PMULL && disable_pmull == NULL;
-        arm_sha1_support_ = hwcaps & HWCAP_SHA1;
+        arm_sha1_support_ = hwcaps & HWCAP_SHA1 && disable_sha1 == NULL;
         arm_sha2_support_ = hwcaps & HWCAP_SHA2 && disable_sha2 == NULL;
     }
     /* aarch64 must support NEON. */
@@ -250,6 +251,7 @@ void
 CheckARMSupport()
 {
     char *disable_hw_aes = PR_GetEnvSecure("NSS_DISABLE_HW_AES");
+    char *disable_sha1 = PR_GetEnvSecure("NSS_DISABLE_SHA1");
     char *disable_sha2 = PR_GetEnvSecure("NSS_DISABLE_SHA2");
     if (getauxval) {
         // Android's cpu-features.c uses AT_HWCAP2 for newer features.
@@ -268,7 +270,7 @@ CheckARMSupport()
 #endif
         arm_aes_support_ = hwcaps & HWCAP2_AES && disable_hw_aes == NULL;
         arm_pmull_support_ = hwcaps & HWCAP2_PMULL;
-        arm_sha1_support_ = hwcaps & HWCAP2_SHA1;
+        arm_sha1_support_ = hwcaps & HWCAP2_SHA1 && disable_sha1 == NULL;
         arm_sha2_support_ = hwcaps & HWCAP2_SHA2 && disable_sha2 == NULL;
     }
     arm_neon_support_ = GetNeonSupport();

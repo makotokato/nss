@@ -242,19 +242,19 @@ ifeq ($(CPU_ARCH),arm)
     DEFINES += -DSHA_NO_LONG_LONG # avoid 64-bit arithmetic in SHA512
     MPI_SRCS += mpi_arm.c
     ifdef CC_IS_CLANG
-        EXTRA_SRCS += sha256-armv8.c
+        EXTRA_SRCS += sha1-armv8.c sha256-armv8.c
     else ifeq (1,$(CC_IS_GCC))
         # Old compiler doesn't support ARM extension.
         ifneq (,$(filter 4.9,$(word 1,$(GCC_VERSION)).$(word 2,$(GCC_VERSION))))
-            EXTRA_SRCS += sha256-armv8.c
+            EXTRA_SRCS += sha1-armv8.c ha256-armv8.c
         endif
         ifeq (,$(filter 0 1 2 3 4,$(word 1,$(GCC_VERSION))))
-            EXTRA_SRCS += sha256-armv8.c
+            EXTRA_SRCS += sha1-armv8.c sha256-armv8.c
         endif
     endif
 endif
 ifeq ($(CPU_ARCH),aarch64)
-    EXTRA_SRCS += gcm-aarch64.c sha256-armv8.c
+    EXTRA_SRCS += gcm-aarch64.c sha1-armv8.c sha256-armv8.c
 endif
 ifeq ($(CPU_ARCH),ppc)
 ifdef USE_64
@@ -773,10 +773,12 @@ $(OBJDIR)/$(PROG_PREFIX)intel-gcm-wrap$(OBJ_SUFFIX): CFLAGS += -mssse3
 endif
 
 ifeq ($(CPU_ARCH),arm)
+$(OBJDIR)/$(PROG_PREFIX)sha1-armv8$(OBJ_SUFFIX): CFLAGS += -march=armv8-a -mfpu=crypto-neon-fp-armv8
 $(OBJDIR)/$(PROG_PREFIX)sha256-armv8$(OBJ_SUFFIX): CFLAGS += -march=armv8-a -mfpu=crypto-neon-fp-armv8
 endif
 
 ifeq ($(CPU_ARCH),aarch64)
 $(OBJDIR)/$(PROG_PREFIX)gcm-aarch64$(OBJ_SUFFIX): CFLAGS += -march=armv8-a+crypto
+$(OBJDIR)/$(PROG_PREFIX)sha1-armv8$(OBJ_SUFFIX): CFLAGS += -march=armv8-a+crypto
 $(OBJDIR)/$(PROG_PREFIX)sha256-armv8$(OBJ_SUFFIX): CFLAGS += -march=armv8-a+crypto
 endif

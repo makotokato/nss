@@ -136,6 +136,7 @@
       'target_name': 'armv8_c_lib',
       'type': 'static_library',
       'sources': [
+        'sha1-armv8.c',
         'sha256-armv8.c',
       ],
       'dependencies': [

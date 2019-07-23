@@ -133,6 +133,35 @@
       ]
     },
     {
+      'target_name': 'armv8_c_lib',
+      'type': 'static_library',
+      'sources': [
+        'sha256-armv8.c',
+      ],
+      'dependencies': [
+        '<(DEPTH)/exports.gyp:nss_exports'
+      ],
+      'conditions': [
+        [ 'target_arch=="arm"', {
+          'cflags': [
+            '-march=armv8-a',
+            '-mfpu=crypto-neon-fp-armv8'
+          ],
+          'cflags_mozilla': [
+            '-march=armv8-a',
+            '-mfpu=crypto-neon-fp-armv8'
+          ],
+        }, 'target_arch=="arm64" or target_arch=="aarch64"', {
+          'cflags': [
+            '-march=armv8-a+crypto'
+          ],
+          'cflags_mozilla': [
+            '-march=armv8-a+crypto'
+          ],
+        }]
+      ]
+    },
+    {
       'target_name': 'freebl',
       'type': 'static_library',
       'sources': [
@@ -164,6 +193,11 @@
         [ 'target_arch=="arm64" or target_arch=="aarch64"', {
           'dependencies': [
             'gcm-aes-aarch64_c_lib',
+          ],
+        }],
+        [ 'target_arch=="arm" or target_arch=="arm64" or target_arch=="aarch64"', {
+          'dependencies': [
+            'armv8_c_lib',
           ],
         }],
         [ 'OS=="linux"', {
@@ -206,6 +240,11 @@
         [ 'target_arch=="arm64" or target_arch=="aarch64"', {
           'dependencies': [
             'gcm-aes-aarch64_c_lib',
+          ],
+        }],
+        [ 'target_arch=="arm" or target_arch=="arm64" or target_arch=="aarch64"', {
+          'dependencies': [
+            'armv8_c_lib',
           ],
         }],
         [ 'OS!="linux"', {

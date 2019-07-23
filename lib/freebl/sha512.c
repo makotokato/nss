@@ -18,6 +18,8 @@
 #include "prlong.h"
 #include "secport.h" /* for PORT_XXX */
 #include "blapi.h"
+#include "blapii.h"
+#include "secerr.h"
 #include "sha256.h" /* for struct SHA256ContextStr */
 #include "crypto_primitives.h"
 
@@ -154,6 +156,38 @@ swap4b(PRUint32 value)
 #define s0(x) (ROTR32(x, 7) ^ ROTR32(x, 18) ^ SHR(x, 3))
 #define s1(x) (ROTR32(x, 17) ^ ROTR32(x, 19) ^ SHR(x, 10))
 
+void SHA256_Compress_Native(SHA256Context *ctx);
+void SHA256_Update_Native(SHA256Context *ctx, const unsigned char *input, unsigned int inputLen);
+
+static void SHA256_Compress(SHA256Context *ctx);
+static void SHA256_Update_Generic(SHA256Context *ctx, const unsigned char *input,
+                            unsigned int inputLen);
+
+#if defined(__linux__) &&                                                      \
+    (defined(__arm__) || defined(__aarch64__)) && defined(IS_LITTLE_ENDIAN) && \
+    (defined(__clang__) ||                                                     \
+     (defined(__GNUC__) && defined(__GNUC_MINOR__) &&                          \
+      (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ > 8))))
+#define USE_HW_SHA2
+#endif
+
+#ifndef USE_HW_SHA2
+void
+SHA256_Compress_Native(SHA256Context *ctx)
+{
+    PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+    PORT_Assert(0);
+}
+
+void
+SHA256_Update_Native(SHA256Context *ctx, const unsigned char *input,
+                     unsigned int inputLen)
+{
+    PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+    PORT_Assert(0);
+}
+#endif
+
 SHA256Context *
 SHA256_NewContext(void)
 {
@@ -175,6 +209,16 @@ SHA256_Begin(SHA256Context *ctx)
 {
     memset(ctx, 0, sizeof *ctx);
     memcpy(H, H256, sizeof H256);
+#ifdef USE_HW_SHA2
+    if (arm_sha2_support()) {
+        ctx->compress = SHA256_Compress_Native;
+        ctx->update = SHA256_Update_Native;
+    } else
+#endif
+    {
+        ctx->compress = SHA256_Compress;
+        ctx->update = SHA256_Update_Generic;
+    }
 }
 
 static void
@@ -394,6 +438,13 @@ void
 SHA256_Update(SHA256Context *ctx, const unsigned char *input,
               unsigned int inputLen)
 {
+    ctx->update(ctx, input, inputLen);
+}
+
+static void
+SHA256_Update_Generic(SHA256Context *ctx, const unsigned char *input,
+                      unsigned int inputLen)
+{
     unsigned int inBuf = ctx->sizeLo & 0x3f;
     if (!inputLen)
         return;
@@ -437,7 +488,7 @@ SHA256_End(SHA256Context *ctx, unsigned char *digest,
     hi = (ctx->sizeHi << 3) | (ctx->sizeLo >> 29);
     lo = (ctx->sizeLo << 3);
 
-    SHA256_Update(ctx, pad, padLen);
+    ctx->update(ctx, pad, padLen);
 
 #if defined(IS_LITTLE_ENDIAN)
     W[14] = SHA_HTONL(hi);
@@ -446,7 +497,7 @@ SHA256_End(SHA256Context *ctx, unsigned char *digest,
     W[14] = hi;
     W[15] = lo;
 #endif
-    SHA256_Compress(ctx);
+    ctx->compress(ctx);
 
 /* now output the answer */
 #if defined(IS_LITTLE_ENDIAN)
@@ -570,13 +621,24 @@ SHA224_Begin(SHA224Context *ctx)
 {
     memset(ctx, 0, sizeof *ctx);
     memcpy(H, H224, sizeof H224);
+#ifdef USE_HW_SHA2
+    /* arm's implementation is tested on little endian only */
+    if (arm_sha2_support()) {
+        ctx->compress = SHA256_Compress_Native;
+        ctx->update = SHA256_Update_Native;
+    } else
+#endif
+    {
+        ctx->compress = SHA256_Compress;
+        ctx->update = SHA256_Update_Generic;
+    }
 }
 
 void
 SHA224_Update(SHA224Context *ctx, const unsigned char *input,
               unsigned int inputLen)
 {
-    SHA256_Update(ctx, input, inputLen);
+    ctx->update(ctx, input, inputLen);
 }
 
 void

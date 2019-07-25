@@ -23,6 +23,10 @@
 #define USE_ARM_GCM
 #endif
 
+#if defined(__arm__)
+#define USE_ARM_NEON
+#endif
+
 /* Forward declarations */
 SECStatus gcm_HashInit_hw(gcmHashContext *ghash);
 SECStatus gcm_HashWrite_hw(gcmHashContext *ghash, unsigned char *outbuf);
@@ -36,7 +40,7 @@ SECStatus gcm_HashMult_sftw32(gcmHashContext *ghash, const unsigned char *buf,
 
 /* Stub definitions for the above *_hw functions, which shouldn't be
  * used unless NSS_X86_OR_X64 is defined */
-#if !defined(NSS_X86_OR_X64) && !defined(USE_ARM_GCM)
+#if !defined(NSS_X86_OR_X64) && !defined(USE_ARM_GCM) && !defined(USE_ARM_NEON)
 SECStatus
 gcm_HashWrite_hw(gcmHashContext *ghash, unsigned char *outbuf)
 {
@@ -94,6 +98,8 @@ gcmHash_InitContext(gcmHashContext *ghash, const unsigned char *H, PRBool sw)
     ghash->h_high = get64(H);
 #ifdef USE_ARM_GCM
     if (arm_pmull_support() && !sw) {
+#elif defined(USE_ARM_NEON)
+    if (arm_neon_support() && !sw) {
 #else
     if (clmul_support() && !sw) {
 #endif

@@ -563,6 +563,10 @@ ifndef HAVE_INT128_SUPPORT
     VERIFIED_SRCS += FStar.c
 endif
 
+ifeq ($(CPU_ARCH),arm)
+    EXTRA_SRCS += gcm-neon.c
+endif
+
 #######################################################################
 # (5) Execute "global" rules. (OPTIONAL)                              #
 #######################################################################
@@ -773,6 +777,7 @@ $(OBJDIR)/$(PROG_PREFIX)intel-gcm-wrap$(OBJ_SUFFIX): CFLAGS += -mssse3
 endif
 
 ifeq ($(CPU_ARCH),arm)
+$(OBJDIR)/$(PROG_PREFIX)gcm-neon$(OBJ_SUFFIX): CFLAGS += -mfpu=neon
 $(OBJDIR)/$(PROG_PREFIX)sha1-armv8$(OBJ_SUFFIX): CFLAGS += -march=armv8-a -mfpu=crypto-neon-fp-armv8
 $(OBJDIR)/$(PROG_PREFIX)sha256-armv8$(OBJ_SUFFIX): CFLAGS += -march=armv8-a -mfpu=crypto-neon-fp-armv8
 endif

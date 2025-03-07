@@ -33,6 +33,8 @@
 #ifdef USE_HW_AES
 #ifdef NSS_X86_OR_X64
 #include "intel-aes.h"
+#elif defined(__riscv) && __riscv_xlen == 64
+#include "aes-riscv64zvkn.h"
 #else
 #include "aes-armv8.h"
 #endif
@@ -917,6 +919,37 @@ FREEBL_CIPHER_WRAP(AESContext, intel_aes_decrypt_cbc_256);
          : ((keysize) == 16   ? freeblCipher_intel_aes_decrypt_cbc_128  \
             : (keysize) == 24 ? freeblCipher_intel_aes_decrypt_cbc_192  \
                               : freeblCipher_intel_aes_decrypt_cbc_256))
+#elif defined(__riscv) && __riscv_xlen == 64
+FREEBL_CIPHER_WRAP(AESContext, riscv64zvkn_aes_encrypt_ecb_128);
+FREEBL_CIPHER_WRAP(AESContext, riscv64zvkn_aes_decrypt_ecb_128);
+FREEBL_CIPHER_WRAP(AESContext, riscv64zvkn_aes_encrypt_ecb_192);
+FREEBL_CIPHER_WRAP(AESContext, riscv64zvkn_aes_decrypt_ecb_192);
+FREEBL_CIPHER_WRAP(AESContext, riscv64zvkn_aes_encrypt_ecb_256);
+FREEBL_CIPHER_WRAP(AESContext, riscv64zvkn_aes_decrypt_ecb_256);
+FREEBL_CIPHER_WRAP(AESContext, riscv64zvkn_aes_encrypt_cbc_128);
+FREEBL_CIPHER_WRAP(AESContext, riscv64zvkn_aes_decrypt_cbc_128);
+FREEBL_CIPHER_WRAP(AESContext, riscv64zvkn_aes_encrypt_cbc_192);
+FREEBL_CIPHER_WRAP(AESContext, riscv64zvkn_aes_decrypt_cbc_192);
+FREEBL_CIPHER_WRAP(AESContext, riscv64zvkn_aes_encrypt_cbc_256);
+FREEBL_CIPHER_WRAP(AESContext, riscv64zvkn_aes_decrypt_cbc_256);
+
+#define freeblCipher_native_aes_ecb_worker(encrypt, keysize)            \
+    ((encrypt)                                                          \
+         ? ((keysize) == 16   ? freeblCipher_riscv64zvkn_aes_encrypt_ecb_128  \
+            : (keysize) == 24 ? freeblCipher_riscv64zvkn_aes_encrypt_ecb_192  \
+                              : freeblCipher_riscv64zvkn_aes_encrypt_ecb_256) \
+         : ((keysize) == 16   ? freeblCipher_riscv64zvkn_aes_decrypt_ecb_128  \
+            : (keysize) == 24 ? freeblCipher_riscv64zvkn_aes_decrypt_ecb_192  \
+                              : freeblCipher_riscv64zvkn_aes_decrypt_ecb_256))
+
+#define freeblCipher_native_aes_cbc_worker(encrypt, keysize)            \
+    ((encrypt)                                                          \
+         ? ((keysize) == 16   ? freeblCipher_riscv64zvkn_aes_encrypt_cbc_128  \
+            : (keysize) == 24 ? freeblCipher_riscv64zvkn_aes_encrypt_cbc_192  \
+                              : freeblCipher_riscv64zvkn_aes_encrypt_cbc_256) \
+         : ((keysize) == 16   ? freeblCipher_riscv64zvkn_aes_decrypt_cbc_128  \
+            : (keysize) == 24 ? freeblCipher_riscv64zvkn_aes_decrypt_cbc_192  \
+                              : freeblCipher_riscv64zvkn_aes_decrypt_cbc_256))
 #else
 FREEBL_CIPHER_WRAP(AESContext, arm_aes_encrypt_ecb_128);
 FREEBL_CIPHER_WRAP(AESContext, arm_aes_decrypt_ecb_128);
@@ -1046,7 +1079,7 @@ aes_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize,
         return SECFailure;
     }
 #if defined(NSS_X86_OR_X64) || defined(USE_HW_AES)
-    use_hw_aes = (aesni_support() || arm_aes_support()) && (keysize % 8) == 0;
+    use_hw_aes = (aesni_support() || arm_aes_support() || rv_vaes_support()) && (keysize % 8) == 0;
 #else
     use_hw_aes = PR_FALSE;
 #endif

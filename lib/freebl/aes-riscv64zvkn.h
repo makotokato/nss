@@ -83,9 +83,11 @@ void riscv64zvkn_key_expansion_256(AESContext *cx, const unsigned char *key);
 #define native_aes_init(encrypt, keysize)                \
     do {                                                 \
         if (encrypt) {                                   \
-	    if (keysize == 16) {                         \
+            if (keysize == 16) {                         \
                  riscv64zvkn_key_expansion_128(cx, key); \
-	    } else {                                     \
+            } else if (keysize == 32) {                  \
+                 riscv64zvkn_key_expansion_256(cx, key); \
+            } else {                                     \
                  rijndael_key_expansion(cx, key, Nk);    \
             }                                            \
         } else {                                         \

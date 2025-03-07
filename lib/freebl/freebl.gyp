@@ -502,10 +502,10 @@
       'conditions': [
         [ 'target_arch=="riscv64"', {
           'cflags': [
-            '-march=rv64gcv_zvkn_zvl128b'
+            '-march=rv64gcv_zvkn'
           ],
           'cflags_mozilla': [
-            '-march=rv64gcv_zvkn_zvl128b'
+            '-march=rv64gcv_zvkn'
           ],
         }]
       ]

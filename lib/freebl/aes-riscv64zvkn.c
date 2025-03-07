@@ -350,9 +350,6 @@ riscv64zvkn_aes_encrypt_cbc_256(AESContext *cx, unsigned char *output,
     while (inputLen > 0) {
         vl = __riscv_vsetvl_e32m1(4);
         state = __riscv_vle32_v_u32m1((const PRUint32 *)input, vl);
-        input += 16;
-        inputLen -= 16;
-
         state = __riscv_vxor_vv_u32m1(state, iv, vl);
         state = vaesz_vs(state, K1);
         state = vaesem_vs(state, K2);
@@ -369,9 +366,10 @@ riscv64zvkn_aes_encrypt_cbc_256(AESContext *cx, unsigned char *output,
         state = vaesem_vs(state, K13);
         state = vaesem_vs(state, K14);
         state = vaesef_vs(state, K15);
-
         __riscv_vse32_v_u32m1((PRUint32 *)output, state, vl);
         iv = state;
+        input += 16;
+        inputLen -= 16;
         output += 16;
     }
 
@@ -398,9 +396,8 @@ riscv64zvkn_aes_decrypt_ecb_128(AESContext *cx, unsigned char *output,
     load_aes_key_128();
 
     while (inputLen > 0) {
-        vl = __riscv_vsetvl_e32m1(inputLen / 4);
+        vl = __riscv_vsetvl_e32m1(4);
         state = __riscv_vle32_v_u32m1((const PRUint32 *)input, vl);
-
         state = vaesz_vs(state, K11);
         state = vaesdm_vs(state, K10);
         state = vaesdm_vs(state, K9);
@@ -413,10 +410,9 @@ riscv64zvkn_aes_decrypt_ecb_128(AESContext *cx, unsigned char *output,
         state = vaesdm_vs(state, K2);
         state = vaesdf_vs(state, K1);
         __riscv_vse32_v_u32m1((PRUint32 *)output, state, vl);
-	vl = vl * 4;
-        input += vl;
-        inputLen -= vl;
-        output += vl;
+        input += 16;
+        inputLen -= 16;
+        output += 16;
     }
 
     return SECSuccess;
@@ -432,6 +428,7 @@ riscv64zvkn_aes_decrypt_ecb_192(AESContext *cx, unsigned char *output,
 {
     vuint32m1_t K1, K2, K3, K4, K5, K6, K7, K8, K9, K10, K11, K12, K13;
     size_t vl;
+    vuint32m1_t state;
 
     if (inputLen == 0) {
         return SECSuccess;
@@ -440,12 +437,8 @@ riscv64zvkn_aes_decrypt_ecb_192(AESContext *cx, unsigned char *output,
     load_aes_key_192();
 
     while (inputLen > 0) {
-        vuint32m1_t state;
         vl = __riscv_vsetvl_e32m1(4);
         state = __riscv_vle32_v_u32m1((const PRUint32 *)input, vl);
-        input += 16;
-        inputLen -= 16;
-
         state = vaesz_vs(state, K13);
         state = vaesdm_vs(state, K12);
         state = vaesdm_vs(state, K11);
@@ -459,8 +452,9 @@ riscv64zvkn_aes_decrypt_ecb_192(AESContext *cx, unsigned char *output,
         state = vaesdm_vs(state, K3);
         state = vaesdm_vs(state, K2);
         state = vaesdf_vs(state, K1);
-
         __riscv_vse32_v_u32m1((PRUint32 *)output, state, vl);
+        input += 16;
+        inputLen -= 16;
         output += 16;
     }
     return SECSuccess;
@@ -474,9 +468,9 @@ riscv64zvkn_aes_decrypt_ecb_256(AESContext *cx, unsigned char *output,
                                 unsigned int inputLen,
                                 unsigned int blocksize)
 {
-    vuint32m1_t state;
     vuint32m1_t K1, K2, K3, K4, K5, K6, K7, K8, K9, K10, K11, K12, K13, K14, K15;
     size_t vl;
+    vuint32m1_t state;
 
     if (inputLen == 0) {
         return SECSuccess;
@@ -487,9 +481,6 @@ riscv64zvkn_aes_decrypt_ecb_256(AESContext *cx, unsigned char *output,
     while (inputLen > 0) {
         vl = __riscv_vsetvl_e32m1(4);
         state = __riscv_vle32_v_u32m1((const PRUint32 *)input, vl);
-        input += 16;
-        inputLen -= 16;
-
         state = vaesz_vs(state, K15);
         state = vaesdm_vs(state, K14);
         state = vaesdm_vs(state, K13);
@@ -505,8 +496,9 @@ riscv64zvkn_aes_decrypt_ecb_256(AESContext *cx, unsigned char *output,
         state = vaesdm_vs(state, K3);
         state = vaesdm_vs(state, K2);
         state = vaesdf_vs(state, K1);
-
         __riscv_vse32_v_u32m1((PRUint32 *)output, state, vl);
+        input += 16;
+        inputLen -= 16;
         output += 16;
     }
     return SECSuccess;
@@ -537,9 +529,6 @@ riscv64zvkn_aes_decrypt_cbc_128(AESContext *cx, unsigned char *output,
         vl = __riscv_vsetvl_e32m1(4);
         state = __riscv_vle32_v_u32m1((const PRUint32 *)input, vl);
         old_state = state;
-        input += 16;
-        inputLen -= 16;
-
         state = vaesz_vs(state, K11);
         state = vaesdm_vs(state, K10);
         state = vaesdm_vs(state, K9);
@@ -552,9 +541,10 @@ riscv64zvkn_aes_decrypt_cbc_128(AESContext *cx, unsigned char *output,
         state = vaesdm_vs(state, K2);
         state = vaesdf_vs(state, K1);
         state = __riscv_vxor_vv_u32m1(state, iv, vl);
-
         __riscv_vse32_v_u32m1((PRUint32 *)output, state, vl);
         iv = old_state;
+        input += 16;
+        inputLen -= 16;
         output += 16;
     }
 
@@ -586,9 +576,6 @@ riscv64zvkn_aes_decrypt_cbc_192(AESContext *cx, unsigned char *output,
     while (inputLen > 0) {
         state = __riscv_vle32_v_u32m1((const PRUint32 *)input, vl);
         old_state = state;
-        input += 16;
-        inputLen -= 16;
-
         state = vaesz_vs(state, K13);
         state = vaesdm_vs(state, K12);
         state = vaesdm_vs(state, K11);
@@ -603,9 +590,10 @@ riscv64zvkn_aes_decrypt_cbc_192(AESContext *cx, unsigned char *output,
         state = vaesdm_vs(state, K2);
         state = vaesdf_vs(state, K1);
         state = __riscv_vxor_vv_u32m1(state, iv, vl);
-
         __riscv_vse32_v_u32m1((PRUint32 *)output, state, vl);
         iv = old_state;
+        input += 16;
+        inputLen -= 16;
         output += 16;
     }
 
@@ -638,9 +626,6 @@ riscv64zvkn_aes_decrypt_cbc_256(AESContext *cx, unsigned char *output,
         vl = __riscv_vsetvl_e32m1(4);
         state = __riscv_vle32_v_u32m1((const PRUint32 *)input, vl);
         old_state = state;
-        input += 16;
-        inputLen -= 16;
-
         state = vaesz_vs(state, K15);
         state = vaesdm_vs(state, K14);
         state = vaesdm_vs(state, K13);
@@ -657,9 +642,10 @@ riscv64zvkn_aes_decrypt_cbc_256(AESContext *cx, unsigned char *output,
         state = vaesdm_vs(state, K2);
         state = vaesdf_vs(state, K1);
         state = __riscv_vxor_vv_u32m1(state, iv, vl);
-
         __riscv_vse32_v_u32m1((PRUint32 *)output, state, vl);
         iv = old_state;
+        input += 16;
+        inputLen -= 16;
         output += 16;
     }
 
@@ -670,114 +656,71 @@ riscv64zvkn_aes_decrypt_cbc_256(AESContext *cx, unsigned char *output,
 void
 riscv64zvkn_key_expansion_128(AESContext *cx, const unsigned char *key)
 {
-    vuint32m1_t t;
+    vuint32m1_t k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11;
     size_t vl;
 
     vl = __riscv_vsetvl_e32m1(4);
-    t = __riscv_vle32_v_u32m1((const PRUint32 *)key, vl);
-    __riscv_vse32_v_u32m1(cx->k.expandedKey, t, vl);
+    k1 = __riscv_vle32_v_u32m1((const PRUint32 *)key, vl);
+    k2 = vaeskf1_vi(k1, 1);
+    k3 = vaeskf1_vi(k2, 2);
+    k4 = vaeskf1_vi(k3, 3);
+    k5 = vaeskf1_vi(k4, 4);
+    k6 = vaeskf1_vi(k5, 5);
+    k7 = vaeskf1_vi(k6, 6);
+    k8 = vaeskf1_vi(k7, 7);
+    k9 = vaeskf1_vi(k8, 8);
+    k10 = vaeskf1_vi(k9, 9);
+    k11 = vaeskf1_vi(k10, 10);
 
-    t = vaeskf1_vi(t, 1);
-    __riscv_vse32_v_u32m1(cx->k.expandedKey + 4, t, vl);
-
-    t = vaeskf1_vi(t, 2);
-    __riscv_vse32_v_u32m1(cx->k.expandedKey + 8, t, vl);
-
-    t = vaeskf1_vi(t, 3);
-    __riscv_vse32_v_u32m1(cx->k.expandedKey + 12, t, vl);
-
-    t = vaeskf1_vi(t, 4);
-    __riscv_vse32_v_u32m1(cx->k.expandedKey + 16, t, vl);
-
-    t = vaeskf1_vi(t, 5);
-    __riscv_vse32_v_u32m1(cx->k.expandedKey + 20, t, vl);
-
-    t = vaeskf1_vi(t, 6);
-    __riscv_vse32_v_u32m1(cx->k.expandedKey + 24, t, vl);
-
-    t = vaeskf1_vi(t, 7);
-    __riscv_vse32_v_u32m1(cx->k.expandedKey + 28, t, vl);
-
-    t = vaeskf1_vi(t, 8);
-    __riscv_vse32_v_u32m1(cx->k.expandedKey + 32, t, vl);
-
-    t = vaeskf1_vi(t, 9);
-    __riscv_vse32_v_u32m1(cx->k.expandedKey + 36, t, vl);
-
-    t = vaeskf1_vi(t, 10);
-    __riscv_vse32_v_u32m1(cx->k.expandedKey + 40, t, vl);
+    __riscv_vse32_v_u32m1(cx->k.expandedKey, k1, vl);
+    __riscv_vse32_v_u32m1(cx->k.expandedKey + 4, k2, vl);
+    __riscv_vse32_v_u32m1(cx->k.expandedKey + 8, k3, vl);
+    __riscv_vse32_v_u32m1(cx->k.expandedKey + 12, k4, vl);
+    __riscv_vse32_v_u32m1(cx->k.expandedKey + 16, k5, vl);
+    __riscv_vse32_v_u32m1(cx->k.expandedKey + 20, k6, vl);
+    __riscv_vse32_v_u32m1(cx->k.expandedKey + 24, k7, vl);
+    __riscv_vse32_v_u32m1(cx->k.expandedKey + 28, k8, vl);
+    __riscv_vse32_v_u32m1(cx->k.expandedKey + 32, k9, vl);
+    __riscv_vse32_v_u32m1(cx->k.expandedKey + 36, k10, vl);
+    __riscv_vse32_v_u32m1(cx->k.expandedKey + 40, k11, vl);
 }
 
 void
 riscv64zvkn_key_expansion_256(AESContext *cx, const unsigned char *key)
 {
-    vuint32m1_t t0, t1;
-    size_t vl;
-    PRUint32 *expandedKey;
-
-    expandedKey = (PRUint32 *)(cx->k.expandedKey);
-
-    vl = __riscv_vsetvl_e32m1(4);
-    t0 = __riscv_vle32_v_u32m1((const PRUint32 *)key, vl);
-    __riscv_vse32_v_u32m1(cx->k.expandedKey, t0, vl);
-
-    t1 = __riscv_vle32_v_u32m1((const PRUint32 *)key, vl);
-    __riscv_vse32_v_u32m1(cx->k.expandedKey + 4, t1, vl);
-
-    t0 = vaeskf2_vi(t0, t1, 2);
-    __riscv_vse32_v_u32m1(cx->k.expandedKey + 8, t0, vl);
-
-    t1 = vaeskf2_vi(t1, t0, 3);
-    __riscv_vse32_v_u32m1(cx->k.expandedKey + 12, t1, vl);
-
-    t0 = vaeskf2_vi(t0, t1, 4);
-    __riscv_vse32_v_u32m1(cx->k.expandedKey + 16, t0, vl);
-
-    t1 = vaeskf2_vi(t1, t0, 5);
-    __riscv_vse32_v_u32m1(cx->k.expandedKey + 20, t1, vl);
-
-    t0 = vaeskf2_vi(t0, t1, 6);
-    __riscv_vse32_v_u32m1(expandedKey, t0, vl);
-    expandedKey += 4;
-
-    t1 = vaeskf2_vi(t1, t0, 7);
-    __riscv_vse32_v_u32m1(expandedKey, t1, vl);
-    expandedKey += 4;
-
-    t0 = vaeskf2_vi(t0, t1, 8);
-    __riscv_vse32_v_u32m1(expandedKey, t0, vl);
-    expandedKey += 4;
-
-    t1 = vaeskf2_vi(t1, t0, 9);
-    __riscv_vse32_v_u32m1(expandedKey, t1, vl);
-    expandedKey += 4;
-
-    t0 = vaeskf2_vi(t0, t1, 10);
-    __riscv_vse32_v_u32m1(expandedKey, t0, vl);
-    expandedKey += 4;
-
-    t1 = vaeskf2_vi(t1, t0, 11);
-    __riscv_vse32_v_u32m1(expandedKey, t1, vl);
-    expandedKey += 4;
-
-    t0 = vaeskf2_vi(t0, t1, 12);
-    __riscv_vse32_v_u32m1(expandedKey, t0, vl);
-    expandedKey += 4;
-
-    t1 = vaeskf2_vi(t1, t0, 13);
-    __riscv_vse32_v_u32m1(expandedKey, t1, vl);
-    expandedKey += 4;
-
-    t0 = vaeskf2_vi(t0, t1, 14);
-    __riscv_vse32_v_u32m1(expandedKey, t0, vl);
-}
-
-void riscv64zvkn_invkey_expansion_128(AESContext *cx, const unsigned char *key)
-{
-    vuint32m1_t t;
+    vuint32m1_t k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15;
     size_t vl;
 
     vl = __riscv_vsetvl_e32m1(4);
-    t = __riscv_vle32_v_u32m1((const PRUint32 *)key, vl);
-    __riscv_vse32_v_u32m1(cx->k.expandedKey, t, vl);
+    k1 = __riscv_vle32_v_u32m1((const PRUint32 *)key, vl);
+    k2 = __riscv_vle32_v_u32m1((const PRUint32 *)(key + 16), vl);
+    k3 = vaeskf2_vi(k1, k2, 2);
+    k4 = vaeskf2_vi(k2, k3, 3);
+    k5 = vaeskf2_vi(k3, k4, 4);
+    k6 = vaeskf2_vi(k4, k5, 5);
+    k7 = vaeskf2_vi(k5, k6, 6);
+    k8 = vaeskf2_vi(k6, k7, 7);
+    k9 = vaeskf2_vi(k7, k8, 8);
+    k10 = vaeskf2_vi(k8, k9, 9);
+    k11 = vaeskf2_vi(k9, k10, 10);
+    k12 = vaeskf2_vi(k10, k11, 11);
+    k13 = vaeskf2_vi(k11, k12, 12);
+    k14 = vaeskf2_vi(k12, k13, 13);
+    k15 = vaeskf2_vi(k13, k14, 14);
+
+    __riscv_vse32_v_u32m1(cx->k.expandedKey, k1, vl);
+    __riscv_vse32_v_u32m1(cx->k.expandedKey + 4, k2, vl);
+    __riscv_vse32_v_u32m1(cx->k.expandedKey + 8, k3, vl);
+    __riscv_vse32_v_u32m1(cx->k.expandedKey + 12, k4, vl);
+    __riscv_vse32_v_u32m1(cx->k.expandedKey + 16, k5, vl);
+    __riscv_vse32_v_u32m1(cx->k.expandedKey + 20, k6, vl);
+    __riscv_vse32_v_u32m1(cx->k.expandedKey + 24, k7, vl);
+    __riscv_vse32_v_u32m1(cx->k.expandedKey + 28, k8, vl);
+    __riscv_vse32_v_u32m1(cx->k.expandedKey + 32, k9, vl);
+    __riscv_vse32_v_u32m1(cx->k.expandedKey + 36, k10, vl);
+    __riscv_vse32_v_u32m1(cx->k.expandedKey + 40, k11, vl);
+    __riscv_vse32_v_u32m1(cx->k.expandedKey + 44, k12, vl);
+    __riscv_vse32_v_u32m1(cx->k.expandedKey + 48, k13, vl);
+    __riscv_vse32_v_u32m1(cx->k.expandedKey + 52, k14, vl);
+    __riscv_vse32_v_u32m1(cx->k.expandedKey + 56, k15, vl);
 }

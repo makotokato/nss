@@ -43,6 +43,9 @@ static PRBool arm_sha1_support_ = PR_FALSE;
 static PRBool arm_sha2_support_ = PR_FALSE;
 static PRBool arm_pmull_support_ = PR_FALSE;
 static PRBool ppc_crypto_support_ = PR_FALSE;
+static PRBool rv_zvkned_support_ = PR_FALSE;
+static PRBool rv_zvknha_support_ = PR_FALSE;
+static PRBool rv_zvknhb_support_ = PR_FALSE;
 
 #ifdef NSS_X86_OR_X64
 /*
@@ -435,6 +438,46 @@ CheckARMSupport()
 // }
 // #endif /* defined(__ANDROID__) && (defined(__arm__) || defined(__aarch64__)) */
 
+#if defined(__riscv) && (__riscv_xlen == 64)
+
+#if defined(__linux__)
+#include <sys/syscall.h>
+#include <unistd.h>
+#if __has_include(<asm/hwprobe.h>)
+#include <asm/hwprobe.h>
+#endif
+#endif
+
+static void
+CheckRVSupport()
+{
+#if defined(__linux__) && __has_include(<asm/hwprobe.h>)
+    struct riscv_hwprobe probe[1];
+    probe[0].key = RISCV_HWPROBE_KEY_IMA_EXT_0;
+    probe[0].value = 0;
+    if (syscall(__NR_riscv_hwprobe, probe, 1, 0, 0, 0) == 0) {
+        if (probe[0].value & RISCV_HWPROBE_EXT_ZVKNED) {
+            rv_zvkned_support_ = PR_TRUE;
+        }
+        if (probe[0].value & RISCV_HWPROBE_EXT_ZVKB) {
+            if (probe[0].value & RISCV_HWPROBE_EXT_ZVKNHA) {
+                // SHA256 only
+                rv_zvknha_support_ = PR_TRUE;
+            }
+            if (probe[0].value & RISCV_HWPROBE_EXT_ZVKNHB) {
+                // SHA256 and SHA512
+                rv_zvknhb_support_ = PR_TRUE;
+            }
+        }
+    }
+#endif /* __linux__ && asm/hwprobe.h */
+
+    rv_zvkned_support_ &= PR_GetEnvSecure("NSS_DISABLE_HW_AES") == NULL;
+    rv_zvknha_support_ &= PR_GetEnvSecure("NSS_DISABLE_HW_SHA2") == NULL;
+    rv_zvknhb_support_ &= PR_GetEnvSecure("NSS_DISABLE_HW_SHA2") == NULL;
+}
+#endif /* __riscv && __riscv_xlen == 64 */
+
 PRBool
 aesni_support()
 {
@@ -510,6 +553,16 @@ ppc_crypto_support()
 {
     return ppc_crypto_support_;
 }
+PRBool
+rv_vaes_support()
+{
+    return rv_zvkned_support_;
+}
+PRBool
+rv_sha2_support()
+{
+    return rv_zvknha_support_ || rv_zvknhb_support_;
+}
 
 #if defined(__powerpc__)
 
@@ -567,6 +620,8 @@ FreeblInit(void)
     CheckARMSupport();
 #elif (defined(__powerpc__))
     CheckPPCSupport();
+#elif defined(__riscv) && (__riscv_xlen == 64)
+    CheckRVSupport();
 #endif
     return PR_SUCCESS;
 }

@@ -491,6 +491,46 @@
       ]
     },
     {
+      'target_name': 'riscv64zvkned_c_lib',
+      'type': 'static_library',
+      'sources': [
+        'aes-riscv64zvkned.c',
+      ],
+      'dependencies': [
+        '<(DEPTH)/exports.gyp:nss_exports'
+      ],
+      'conditions': [
+        [ 'target_arch=="riscv64"', {
+          'cflags': [
+            '-march=rv64gcv_zvkned'
+          ],
+          'cflags_mozilla': [
+            '-march=rv64gcv_zvkned'
+          ],
+        }]
+      ]
+    },
+    {
+      'target_name': 'riscv64zvknh_c_lib',
+      'type': 'static_library',
+      'sources': [
+        'sha256-riscv64zvknh.c',
+      ],
+      'dependencies': [
+        '<(DEPTH)/exports.gyp:nss_exports'
+      ],
+      'conditions': [
+        [ 'target_arch=="riscv64"', {
+          'cflags': [
+            '-march=rv64gcv_zvknhb_zvkb'
+          ],
+          'cflags_mozilla': [
+            '-march=rv64gcv_zvknhb_zvkb'
+          ],
+        }]
+      ]
+    },
+    {
       'target_name': 'freebl',
       'type': 'static_library',
       'sources': [
@@ -568,6 +608,12 @@
             'NSS_DISABLE_CRYPTO_VSX',
           ],
         }],
+        [ 'disable_rv64zvkn==0 and target_arch=="riscv64"', {
+          'dependencies': [
+            'riscv64zvkned_c_lib',
+            'riscv64zvknh_c_lib',
+          ],
+        }],
         [ 'OS=="linux"', {
           'defines!': [
             'FREEBL_NO_DEPEND',
@@ -629,6 +675,12 @@
         [ 'target_arch=="arm64" or target_arch=="aarch64"', {
           'dependencies': [
             'gcm-aes-aarch64_c_lib',
+          ],
+        }],
+        [ 'disable_rv64zvkn==0 and target_arch=="riscv64"', {
+          'dependencies': [
+            'riscv64zvkned_c_lib',
+            'riscv64zvknh_c_lib',
           ],
         }],
         [ 'disable_altivec==0', {
@@ -934,6 +986,12 @@
               'USE_HW_SHA2',
             ],
           }],
+          [ 'disable_rv64zvkn==0 and target_arch=="riscv64"', {
+            'defines': [
+              'USE_HW_AES',
+              'USE_HW_SHA2',
+            ],
+	  }],
         ],
       }],
     ],

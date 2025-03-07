@@ -105,6 +105,7 @@
     'disable_arm_hw_sha1%': 0,
     'disable_arm_hw_sha2%': 0,
     'disable_intel_hw_sha%': 0,
+    'disable_rv64zvkn%': 0,
     'disable_tests%': 0,
     'disable_chachapoly%': 0,
     'disable_deprecated_seed%': 0,

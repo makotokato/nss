@@ -109,6 +109,8 @@ PRBool arm_pmull_support();
 PRBool arm_sha1_support();
 PRBool arm_sha2_support();
 PRBool ppc_crypto_support();
+PRBool rv_vaes_support();
+PRBool rv_sha2_support();
 
 #ifdef NSS_FIPS_DISABLED
 #define BLAPI_CLEAR_STACK(stack_size)

@@ -177,6 +177,10 @@ endif
         endif
     endif
 endif
+ifeq ($(CPU_ARCH),riscv64)
+    DEFINES += -DUSE_HW_AES
+    EXTRA_SRCS += aes-riscv64zvkn.c
+endif
 
 ifeq (,$(filter-out WINNT,$(OS_TARGET)))
 ifndef USE_64
@@ -793,6 +797,10 @@ $(OBJDIR)/$(PROG_PREFIX)rijndael$(OBJ_SUFFIX): CFLAGS += -mcrypto -mvsx
 $(OBJDIR)/$(PROG_PREFIX)sha512$(OBJ_SUFFIX): CFLAGS += -mcrypto -mvsx
 $(OBJDIR)/$(PROG_PREFIX)chacha20poly1305-ppc$(OBJ_SUFFIX): CFLAGS += -mcrypto -mvsx
 endif
+endif
+
+ifeq ($(CPU_ARCH),riscv64)
+$(OBJDIR)$(PROG_PREFIX)aes-riscv64zvkn$(OBJ_SUFFIX): CFLAGS += -march=rv64gcv_zvkn_zvl128b
 endif
 
 $(OBJDIR)/$(PROG_PREFIX)Hacl_Chacha20_Vec128$(OBJ_SUFFIX): CFLAGS += -mssse3 -msse4.1 -msse4.2 -mavx

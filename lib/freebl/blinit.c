@@ -43,6 +43,8 @@ static PRBool arm_sha1_support_ = PR_FALSE;
 static PRBool arm_sha2_support_ = PR_FALSE;
 static PRBool arm_pmull_support_ = PR_FALSE;
 static PRBool ppc_crypto_support_ = PR_FALSE;
+static PRBool rv_zvknd_support_ = PR_FALSE;
+static PRBool rv_zvkne_support_ = PR_FALSE;
 
 #ifdef NSS_X86_OR_X64
 /*
@@ -510,6 +512,11 @@ ppc_crypto_support()
 {
     return ppc_crypto_support_;
 }
+PRBool
+rv_vaes_support()
+{
+    return rv_zvknd_support_ && rv_zvkne_support_;
+}
 
 #if defined(__powerpc__)
 
@@ -557,6 +564,47 @@ CheckPPCSupport()
 /* clang-format on */
 
 #endif /* __powerpc__ */
+
+#if defined(__riscv)
+static void
+CheckRVSupport()
+{
+#if defined(__linux__)
+    FILE *cpuinfo;
+    char buf[512];
+    char *p;
+
+    cpuinfo = fopen("/proc/cpuinfo", "r");
+    if (!cpuinfo) {
+        return;
+    }
+    while (fgets(buf, 511, cpuinfo)) {
+        if (!memcmp(buf, "isa", 3)) {
+            p = strstr(buf, "_zvknd");
+            if (p && (p[5] == '_' || p[5] == '\n')) {
+                rv_zvknd_support_ = PR_TRUE;
+            }
+            p = strstr(buf, "_zvkne");
+            if (p && (p[5] == '_' || p[5] == '\n')) {
+                rv_zvkne_support_ = PR_TRUE;
+            }
+        }
+    }
+    fclose(cpuinfo);
+#endif /* __linux__ */
+
+    /* Although no feature detection, default compiler option allows zk*
+       features */
+#if defined(__riscv_zvknd)
+    rv_zvknd_support_ = PR_TRUE;
+#endif
+#if defined(__riscv_zvkne)
+    rv_zvkne_support_ = PR_TRUE;
+#endif
+    rv_zvknd_support_ &= PR_GetEnvSecure("NSS_DISABLE_HW_AES") == NULL;
+    rv_zvkne_support_ &= PR_GetEnvSecure("NSS_DISABLE_HW_AES") == NULL;
+}
+#endif /* __riscv */
 
 static PRStatus
 FreeblInit(void)

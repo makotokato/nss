@@ -491,6 +491,26 @@
       ]
     },
     {
+      'target_name': 'riscv64zvkn_c_lib',
+      'type': 'static_library',
+      'sources': [
+        'aes-riscv64zvkn.c',
+      ],
+      'dependencies': [
+        '<(DEPTH)/exports.gyp:nss_exports'
+      ],
+      'conditions': [
+        [ 'target_arch=="riscv64"', {
+          'cflags': [
+            '-march=rv64gcv_zvkn_zvl128b'
+          ],
+          'cflags_mozilla': [
+            '-march=rv64gcv_zvkn_zvl128b'
+          ],
+        }]
+      ]
+    },
+    {
       'target_name': 'freebl',
       'type': 'static_library',
       'sources': [
@@ -568,6 +588,11 @@
             'NSS_DISABLE_CRYPTO_VSX',
           ],
         }],
+        [ 'disable_rv64zvkn==0 and target_arch=="riscv64"', {
+          'dependencies': [
+            'riscv64zvkn_c_lib',
+          ],
+        }],
         [ 'OS=="linux"', {
           'defines!': [
             'FREEBL_NO_DEPEND',
@@ -629,6 +654,11 @@
         [ 'target_arch=="arm64" or target_arch=="aarch64"', {
           'dependencies': [
             'gcm-aes-aarch64_c_lib',
+          ],
+        }],
+        [ 'disable_rv64zvkn==0 and target_arch=="riscv64"', {
+          'dependencies': [
+            'riscv64zvkn_c_lib',
           ],
         }],
         [ 'disable_altivec==0', {
@@ -924,6 +954,11 @@
               'USE_HW_AES',
             ],
           }],
+          [ 'disable_rv64zvkn==0 and target_arch=="riscv64"', {
+            'defines': [
+              'USE_HW_AES',
+            ],
+	  }],
           [ 'disable_arm_hw_sha1==0 and (target_arch=="arm" or target_arch=="arm64" or target_arch=="aarch64")', {
             'defines': [
               'USE_HW_SHA1',

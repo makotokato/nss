@@ -34,7 +34,7 @@
 #ifdef NSS_X86_OR_X64
 #include "intel-aes.h"
 #elif defined(__riscv) && __riscv_xlen == 64
-#include "aes-riscv64zvkn.h"
+#include "aes-riscv64zvkned.h"
 #else
 #include "aes-armv8.h"
 #endif

@@ -44,6 +44,7 @@ static PRBool arm_sha2_support_ = PR_FALSE;
 static PRBool arm_pmull_support_ = PR_FALSE;
 static PRBool ppc_crypto_support_ = PR_FALSE;
 static PRBool rv_zvkned_support_ = PR_FALSE;
+static PRBool rv_zvknh_support_ = PR_FALSE;
 
 #ifdef NSS_X86_OR_X64
 /*
@@ -516,6 +517,11 @@ rv_vaes_support()
 {
     return rv_zvkned_support_;
 }
+PRBool
+rv_sha2_support()
+{
+    return rv_zvknh_support_;
+}
 
 #if defined(__powerpc__)
 
@@ -583,12 +589,20 @@ CheckRVSupport()
             if (p && (p[7] == '_' || p[7] == '\n')) {
                 rv_zvkned_support_ = PR_TRUE;
             }
+            p = strstr(buf, "_zvknhb");
+            if (p && (p[7] == '_' || p[7] == '\n')) {
+                p = strstr(buf, "_zvkb");
+                if (p && (p[5] == '_' || p[5] == '\n')) {
+                    rv_zvknh_support_ = PR_TRUE;
+		}
+            }
         }
     }
     fclose(cpuinfo);
 #endif /* __linux__ */
 
     rv_zvkned_support_ &= PR_GetEnvSecure("NSS_DISABLE_HW_AES") == NULL;
+    rv_zvknh_support_ &= PR_GetEnvSecure("NSS_DISABLE_HW_SHA2") == NULL;
 }
 #endif /* __riscv */
 

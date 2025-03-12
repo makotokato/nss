@@ -491,10 +491,10 @@
       ]
     },
     {
-      'target_name': 'riscv64zvkn_c_lib',
+      'target_name': 'riscv64zvkned_c_lib',
       'type': 'static_library',
       'sources': [
-        'aes-riscv64zvkn.c',
+        'aes-riscv64zvkned.c',
       ],
       'dependencies': [
         '<(DEPTH)/exports.gyp:nss_exports'
@@ -502,10 +502,30 @@
       'conditions': [
         [ 'target_arch=="riscv64"', {
           'cflags': [
-            '-march=rv64gcv_zvkn'
+            '-march=rv64gcv_zvkned'
           ],
           'cflags_mozilla': [
-            '-march=rv64gcv_zvkn'
+            '-march=rv64gcv_zvkned'
+          ],
+        }]
+      ]
+    },
+    {
+      'target_name': 'riscv64zvknh_c_lib',
+      'type': 'static_library',
+      'sources': [
+        'sha256-riscv64zvknh.c',
+      ],
+      'dependencies': [
+        '<(DEPTH)/exports.gyp:nss_exports'
+      ],
+      'conditions': [
+        [ 'target_arch=="riscv64"', {
+          'cflags': [
+            '-march=rv64gcv_zvknha_zvkb'
+          ],
+          'cflags_mozilla': [
+            '-march=rv64gcv_zvknha_zvkb'
           ],
         }]
       ]
@@ -590,7 +610,8 @@
         }],
         [ 'disable_rv64zvkn==0 and target_arch=="riscv64"', {
           'dependencies': [
-            'riscv64zvkn_c_lib',
+            'riscv64zvkned_c_lib',
+            'riscv64zvknh_c_lib',
           ],
         }],
         [ 'OS=="linux"', {
@@ -658,7 +679,8 @@
         }],
         [ 'disable_rv64zvkn==0 and target_arch=="riscv64"', {
           'dependencies': [
-            'riscv64zvkn_c_lib',
+            'riscv64zvkned_c_lib',
+            'riscv64zvknh_c_lib',
           ],
         }],
         [ 'disable_altivec==0', {
@@ -957,6 +979,7 @@
           [ 'disable_rv64zvkn==0 and target_arch=="riscv64"', {
             'defines': [
               'USE_HW_AES',
+              'USE_HW_SHA2',
             ],
 	  }],
           [ 'disable_arm_hw_sha1==0 and (target_arch=="arm" or target_arch=="arm64" or target_arch=="aarch64")', {

@@ -80,19 +80,15 @@ SECStatus riscv64zvkn_aes_decrypt_cbc_256(AESContext *cx, unsigned char *output,
 void riscv64zvkn_key_expansion_128(AESContext *cx, const unsigned char *key);
 void riscv64zvkn_key_expansion_256(AESContext *cx, const unsigned char *key);
 
-#define native_aes_init(encrypt, keysize)                \
-    do {                                                 \
-        if (encrypt) {                                   \
-            if (keysize == 16) {                         \
-                 riscv64zvkn_key_expansion_128(cx, key); \
-            } else if (keysize == 32) {                  \
-                 riscv64zvkn_key_expansion_256(cx, key); \
-            } else {                                     \
-                 rijndael_key_expansion(cx, key, Nk);    \
-            }                                            \
-        } else {                                         \
-            rijndael_invkey_expansion(cx, key, Nk);      \
-        }                                                \
+#define native_aes_init(encrypt, keysize)            \
+    do {                                             \
+        if (keysize == 16) {                         \
+             riscv64zvkn_key_expansion_128(cx, key); \
+        } else if (keysize == 32) {                  \
+             riscv64zvkn_key_expansion_256(cx, key); \
+        } else {                                     \
+             rijndael_key_expansion(cx, key, Nk);    \
+        }                                            \
     } while (0)
 
 #endif

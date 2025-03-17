@@ -20,22 +20,30 @@
 
 #include <riscv_vector.h>
 
-vuint32m1_t vsha2cl_vv(vuint32m1_t vd, vuint32m1_t vs2, vuint32m1_t vs1) {
+vuint32m1_t
+vsha2cl_vv_u32m1(vuint32m1_t vd, vuint32m1_t vs2, vuint32m1_t vs1)
+{
     __asm__("vsha2cl.vv %0, %1, %2" : "+vr"(vd) : "vr"(vs2), "vr"(vs1));
     return vd;
 }
 
-vuint32m1_t vsha2ch_vv(vuint32m1_t vd, vuint32m1_t vs2, vuint32m1_t vs1) {
+vuint32m1_t
+vsha2ch_vv_u32m1(vuint32m1_t vd, vuint32m1_t vs2, vuint32m1_t vs1)
+{
     __asm__("vsha2ch.vv %0, %1, %2" : "+vr"(vd) : "vr"(vs2), "vr"(vs1));
     return vd;
 }
 
-vuint32m1_t vsha2ms_vv_u32m1(vuint32m1_t vd, vuint32m1_t vs2, vuint32m1_t vs1) {
+vuint32m1_t
+vsha2ms_vv_u32m1(vuint32m1_t vd, vuint32m1_t vs2, vuint32m1_t vs1)
+{
     __asm__("vsha2ms.vv %0, %1, %2" : "+vr"(vd) : "vr"(vs2), "vr"(vs1));
     return vd;
 }
 
-vuint32m1_t vrev8_v_u32m1(vuint32m1_t vs2) {
+vuint32m1_t
+vrev8_v_u32m1(vuint32m1_t vs2)
+{
     vuint32m1_t vd;
     __asm__("vrev8.v %0, %1" : "=vr"(vd) : "vr"(vs2));
     return vd;
@@ -61,18 +69,36 @@ static const PRUint32 __attribute__((aligned(16))) K256[64] = {
     0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
 };
 
-#define ROUND(n, a, b, c, d)                                  \
-    {                                                         \
-        t = __riscv_vadd_vv_u32m1(a, k##n, 4);                \
-        w1 = vsha2cl_vv(w1, w0, t);                           \
-        w0 = vsha2ch_vv(w0, w1, t);                           \
-        if (n < 12) {                                         \
-            t = __riscv_vmerge_vvm_u32m1(c, b, roundMask, 4); \
-            a = vsha2ms_vv_u32m1(a, t, d);                    \
-        }                                                     \
+#define ROUND(n, a, b, c, d)                             \
+    {                                                    \
+        t = __riscv_vadd_vv_u32m1(a, k##n, 4);           \
+        w1 = vsha2cl_vv_u32m1(w1, w0, t);                \
+        w0 = vsha2ch_vv_u32m1(w0, w1, t);                \
+        if (n < 12) {                                    \
+            t = __riscv_vmerge_vvm_u32m1(c, b, mask, 4); \
+            a = vsha2ms_vv_u32m1(a, t, d);               \
+        }                                                \
     }
 
-static const PRUint8 HASH_MASK[4] = { 0x14, 0x10, 0x04, 0x00 };
+#define LOAD_K256()                                \
+    {                                              \
+        k0 = __riscv_vle32_v_u32m1(K256, 4);       \
+        k1 = __riscv_vle32_v_u32m1(K256 + 4, 4);   \
+        k2 = __riscv_vle32_v_u32m1(K256 + 8, 4);   \
+        k3 = __riscv_vle32_v_u32m1(K256 + 12, 4);  \
+        k4 = __riscv_vle32_v_u32m1(K256 + 16, 4);  \
+        k5 = __riscv_vle32_v_u32m1(K256 + 20, 4);  \
+        k6 = __riscv_vle32_v_u32m1(K256 + 24, 4);  \
+        k7 = __riscv_vle32_v_u32m1(K256 + 28, 4);  \
+        k8 = __riscv_vle32_v_u32m1(K256 + 32, 4);  \
+        k9 = __riscv_vle32_v_u32m1(K256 + 36, 4);  \
+        k10 = __riscv_vle32_v_u32m1(K256 + 40, 4); \
+        k11 = __riscv_vle32_v_u32m1(K256 + 44, 4); \
+        k12 = __riscv_vle32_v_u32m1(K256 + 48, 4); \
+        k13 = __riscv_vle32_v_u32m1(K256 + 52, 4); \
+        k14 = __riscv_vle32_v_u32m1(K256 + 56, 4); \
+        k15 = __riscv_vle32_v_u32m1(K256 + 60, 4); \
+    }
 
 void
 SHA256_Compress_Native(SHA256Context *ctx)
@@ -81,42 +107,26 @@ SHA256_Compress_Native(SHA256Context *ctx)
     vuint32m1_t h0, h1, w0, w1;
     vuint32m1_t a, b, c, d;
     vuint32m1_t t;
-    vuint8mf4_t hashMask;
-    vbool32_t roundMask;
+    vuint8mf4_t index;
+    vbool32_t mask;
 
-    k0 = __riscv_vle32_v_u32m1(K256, 4);
-    k1 = __riscv_vle32_v_u32m1(K256 + 4, 4);
-    k2 = __riscv_vle32_v_u32m1(K256 + 8, 4);
-    k3 = __riscv_vle32_v_u32m1(K256 + 12, 4);
-    k4 = __riscv_vle32_v_u32m1(K256 + 16, 4);
-    k5 = __riscv_vle32_v_u32m1(K256 + 20, 4);
-    k6 = __riscv_vle32_v_u32m1(K256 + 24, 4);
-    k7 = __riscv_vle32_v_u32m1(K256 + 28, 4);
-    k8 = __riscv_vle32_v_u32m1(K256 + 32, 4);
-    k9 = __riscv_vle32_v_u32m1(K256 + 36, 4);
-    k10 = __riscv_vle32_v_u32m1(K256 + 40, 4);
-    k11 = __riscv_vle32_v_u32m1(K256 + 44, 4);
-    k12 = __riscv_vle32_v_u32m1(K256 + 48, 4);
-    k13 = __riscv_vle32_v_u32m1(K256 + 52, 4);
-    k14 = __riscv_vle32_v_u32m1(K256 + 56, 4);
-    k15 = __riscv_vle32_v_u32m1(K256 + 60, 4);
-    roundMask = __riscv_vreinterpret_v_u8m1_b32(__riscv_vmv_v_x_u8m1(1, 1));
+    LOAD_K256()
 
     /* H0123:4567 -> H01256:H2367 */
-    // m = __riscv_vmv_v_x_u32mf2(0x41014, 1);
-    // m = __riscv_vreinterpret_v_u32mf2_u8mf2(m);
-    //
-    hashMask = __riscv_vle8_v_u8mf4(HASH_MASK, 4);
-    h0 = __riscv_vluxei8_v_u32m1(ctx->h, hashMask, 4);
-    h1 = __riscv_vluxei8_v_u32m1(ctx->h + 4, hashMask, 4);
+    uint32_t maskValue = 0x00041014;
+    __asm__("vsetivli zero, 1, e32, m1, ta, ma\n"
+            "vmv.v.x %0, %1"
+            : "=vr"(index)
+            : "r"(maskValue));
+    h0 = __riscv_vluxei8_v_u32m1(ctx->h, index, 4);
+    h1 = __riscv_vluxei8_v_u32m1(ctx->h + 2, index, 4);
 
-    PRUint32 *input = ctx->u.w;
+    a = vrev8_v_u32m1(__riscv_vle32_v_u32m1(ctx->u.w, 4));
+    b = vrev8_v_u32m1(__riscv_vle32_v_u32m1(ctx->u.w + 4, 4));
+    c = vrev8_v_u32m1(__riscv_vle32_v_u32m1(ctx->u.w + 8, 4));
+    d = vrev8_v_u32m1(__riscv_vle32_v_u32m1(ctx->u.w + 12, 4));
 
-    a = vrev8_v_u32m1(__riscv_vle32_v_u32m1(input, 4));
-    b = vrev8_v_u32m1(__riscv_vle32_v_u32m1(input + 4, 4));
-    c = vrev8_v_u32m1(__riscv_vle32_v_u32m1(input + 8, 4));
-    d = vrev8_v_u32m1(__riscv_vle32_v_u32m1(input + 12, 4));
-
+    mask = __riscv_vreinterpret_v_u8m1_b32(__riscv_vmv_v_x_u8m1(1, 1));
     w0 = h0;
     w1 = h1;
 
@@ -141,8 +151,8 @@ SHA256_Compress_Native(SHA256Context *ctx)
     h1 = __riscv_vadd_vv_u32m1(h1, w1, 4);
 
     /* H0145:2367 -> H0123:4567 */
-    __riscv_vsuxei8_v_u32m1(ctx->h, hashMask, h0, 4);
-    __riscv_vsuxei8_v_u32m1(ctx->h + 4, hashMask, h1, 4);
+    __riscv_vsuxei8_v_u32m1(ctx->h, index, h0, 4);
+    __riscv_vsuxei8_v_u32m1(ctx->h + 2, index, h1, 4);
 }
 
 void
@@ -153,30 +163,12 @@ SHA256_Update_Native(SHA256Context *ctx, const unsigned char *input,
     vuint32m1_t h0, h1, w0, w1;
     vuint32m1_t a, b, c, d;
     vuint32m1_t t;
-    vbool32_t roundMask;
-    vuint8mf4_t hashMask;
+    vbool32_t mask;
+    vuint8mf4_t index;
 
     if (!inputLen) {
         return;
     }
-
-    k0 = __riscv_vle32_v_u32m1(K256, 4);
-    k1 = __riscv_vle32_v_u32m1(K256 + 4, 4);
-    k2 = __riscv_vle32_v_u32m1(K256 + 8, 4);
-    k3 = __riscv_vle32_v_u32m1(K256 + 12, 4);
-    k4 = __riscv_vle32_v_u32m1(K256 + 16, 4);
-    k5 = __riscv_vle32_v_u32m1(K256 + 20, 4);
-    k6 = __riscv_vle32_v_u32m1(K256 + 24, 4);
-    k7 = __riscv_vle32_v_u32m1(K256 + 28, 4);
-    k8 = __riscv_vle32_v_u32m1(K256 + 32, 4);
-    k9 = __riscv_vle32_v_u32m1(K256 + 36, 4);
-    k10 = __riscv_vle32_v_u32m1(K256 + 40, 4);
-    k11 = __riscv_vle32_v_u32m1(K256 + 44, 4);
-    k12 = __riscv_vle32_v_u32m1(K256 + 48, 4);
-    k13 = __riscv_vle32_v_u32m1(K256 + 52, 4);
-    k14 = __riscv_vle32_v_u32m1(K256 + 56, 4);
-    k15 = __riscv_vle32_v_u32m1(K256 + 60, 4);
-    roundMask = __riscv_vreinterpret_v_u32m1_b32(__riscv_vmv_v_x_u32m1(1, 1));
 
     unsigned int inBuf = ctx->sizeLo & 0x3f;
 
@@ -199,17 +191,24 @@ SHA256_Update_Native(SHA256Context *ctx, const unsigned char *input,
         }
     }
 
-    /* H0123:4567 -> H01256:H2367 */
-    hashMask = __riscv_vle8_v_u8mf4(HASH_MASK, 4);
-    h0 = __riscv_vluxei8_v_u32m1(ctx->h, hashMask, 4);
-    h1 = __riscv_vluxei8_v_u32m1(ctx->h + 4, hashMask, 4);
+    LOAD_K256()
+
+    /* H0123:4567 -> H0145:H2367 */
+    uint32_t maskValue = 0x00041014;
+    __asm__("vsetivli zero, 1, e32, m1, ta, ma\n"
+            "vmv.v.x %0, %1"
+            : "=vr"(index)
+            : "r"(maskValue));
+    h0 = __riscv_vluxei8_v_u32m1(ctx->h, index, 4);
+    h1 = __riscv_vluxei8_v_u32m1(ctx->h + 2, index, 4);
+    mask = __riscv_vreinterpret_v_u8m1_b32(__riscv_vmv_v_x_u8m1(1, 1));
 
     /* if enough data to fill one or more whole buffers, process them. */
     while (inputLen >= SHA256_BLOCK_LENGTH) {
-        a = vrev8_v_u32m1(__riscv_vle32_v_u32m1((const PRUint32*)input, 4));
-        b = vrev8_v_u32m1(__riscv_vle32_v_u32m1((const PRUint32*)(input + 4), 4));
-        c = vrev8_v_u32m1(__riscv_vle32_v_u32m1((const PRUint32*)(input + 8), 4));
-        d = vrev8_v_u32m1(__riscv_vle32_v_u32m1((const PRUint32*)(input + 12), 4));
+        a = vrev8_v_u32m1(__riscv_vle32_v_u32m1((const PRUint32 *)input, 4));
+        b = vrev8_v_u32m1(__riscv_vle32_v_u32m1((const PRUint32 *)(input + 16), 4));
+        c = vrev8_v_u32m1(__riscv_vle32_v_u32m1((const PRUint32 *)(input + 32), 4));
+        d = vrev8_v_u32m1(__riscv_vle32_v_u32m1((const PRUint32 *)(input + 48), 4));
         input += SHA256_BLOCK_LENGTH;
         inputLen -= SHA256_BLOCK_LENGTH;
 
@@ -238,8 +237,8 @@ SHA256_Update_Native(SHA256Context *ctx, const unsigned char *input,
     }
 
     /* H0145:2367 -> H0123:4567 */
-    __riscv_vsuxei8_v_u32m1(ctx->h, hashMask, h0, 4);
-    __riscv_vsuxei8_v_u32m1(ctx->h + 4, hashMask, h1, 4);
+    __riscv_vsuxei8_v_u32m1(ctx->h, index, h0, 4);
+    __riscv_vsuxei8_v_u32m1(ctx->h + 2, index, h1, 4);
 
     /* if data left over, fill it into buffer */
     if (inputLen) {

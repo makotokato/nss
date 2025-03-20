@@ -4,7 +4,7 @@
 
 #ifdef USE_HW_SHA2
 
-#if !defined(__riscv_zvknha) || !defined(__riscv_zvkb)
+#if !defined(__riscv_zvknhb) || !defined(__riscv_zvkb)
 #error "Compiler option is invalid"
 #endif
 

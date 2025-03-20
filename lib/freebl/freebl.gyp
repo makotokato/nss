@@ -522,10 +522,10 @@
       'conditions': [
         [ 'target_arch=="riscv64"', {
           'cflags': [
-            '-march=rv64gcv_zvknha_zvkb'
+            '-march=rv64gcv_zvknhb_zvkb'
           ],
           'cflags_mozilla': [
-            '-march=rv64gcv_zvknha_zvkb'
+            '-march=rv64gcv_zvknhb_zvkb'
           ],
         }]
       ]

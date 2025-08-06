@@ -182,7 +182,8 @@ ifeq ($(CPU_ARCH),riscv64)
         DEFINES += -DUSE_HW_AES -DUSE_HW_SHA2
         EXTRA_SRCS += aes-riscv64zvkn.c sha256-riscv64zvknh.c
     else ifeq (1,$(CC_IS_GCC))
-        ifeq (,$(filter 0 1 2 3 4 5 6 7 8 9 10 11 12,$(word 1,$(GCC_VERSION))))
+	# GCC 13 supports Vector extensions, but some types aren't defined.
+        ifeq (,$(filter 0 1 2 3 4 5 6 7 8 9 10 11 12 13,$(word 1,$(GCC_VERSION))))
             DEFINES += -DUSE_HW_AES -DUSE_HW_SHA2
             EXTRA_SRCS += aes-riscv64zvkn.c sha256-riscv64zvknh.c
         endif

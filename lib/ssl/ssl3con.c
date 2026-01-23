@@ -362,7 +362,7 @@ static const CK_MECHANISM_TYPE auth_alg_defs[] = {
     CKM_ECDH1_DERIVE,      /* ssl_auth_ecdh_ecdsa */
     CKM_RSA_PKCS,          /* ssl_auth_rsa_sign */
     CKM_RSA_PKCS_PSS,      /* ssl_auth_rsa_pss */
-    CKM_NSS_HKDF_SHA256,   /* ssl_auth_psk (just check for HKDF) */
+    CKM_HKDF_DATA,         /* ssl_auth_psk (just check for HKDF) */
     CKM_INVALID_MECHANISM  /* ssl_auth_tls13_any */
 };
 PR_STATIC_ASSERT(PR_ARRAY_SIZE(auth_alg_defs) == ssl_auth_size);
@@ -1389,7 +1389,8 @@ ssl3_GetNewRandom(SSL3Random random)
     return rv;
 }
 
-SECStatus
+/* this only implements TLS 1.2 and earlier signatures */
+static SECStatus
 ssl3_SignHashesWithPrivKey(SSL3Hashes *hash, SECKEYPrivateKey *key,
                            SSLSignatureScheme scheme, PRBool isTls, SECItem *buf)
 {
@@ -1450,8 +1451,9 @@ ssl3_SignHashesWithPrivKey(SSL3Hashes *hash, SECKEYPrivateKey *key,
             PORT_SetError(SEC_ERROR_INVALID_KEY);
             goto done;
         }
-        /* since we are calling PK11_SignWithMechanism directly, we need to check the
-         * key policy ourselves (which is already checked in SGN_Digest */
+        /* since we are calling PK11_SignWithMechanism directly, we need to
+         * check the key policy ourselves (which is already checked in
+         * SGN_Digest) */
         rv = NSS_OptionGet(NSS_KEY_SIZE_POLICY_FLAGS, &optval);
         if ((rv == SECSuccess) &&
             ((optval & NSS_KEY_SIZE_POLICY_SIGN_FLAG) == NSS_KEY_SIZE_POLICY_SIGN_FLAG)) {
@@ -1526,8 +1528,9 @@ ssl3_SignHashes(sslSocket *ss, SSL3Hashes *hash, SECKEYPrivateKey *key,
     return SECSuccess;
 }
 
-/* Called from ssl3_VerifySignedHashes and tls13_HandleCertificateVerify. */
-SECStatus
+/* Called from ssl3_VerifySignedHashes */
+/* this only implements TLS 1.2 and earlier signatures */
+static SECStatus
 ssl_VerifySignedHashesWithPubKey(sslSocket *ss, SECKEYPublicKey *key,
                                  SSLSignatureScheme scheme,
                                  SSL3Hashes *hash, SECItem *buf)
@@ -3755,7 +3758,7 @@ tls_ComputeExtendedMasterSecretInt(sslSocket *ss, PK11SymKey *pms,
                                    PK11SymKey **msp)
 {
     ssl3CipherSpec *pwSpec = ss->ssl3.pwSpec;
-    CK_NSS_TLS_EXTENDED_MASTER_KEY_DERIVE_PARAMS extended_master_params;
+    CK_TLS12_EXTENDED_MASTER_KEY_DERIVE_PARAMS extended_master_params;
     SSL3Hashes hashes;
 
     /*
@@ -3783,9 +3786,9 @@ tls_ComputeExtendedMasterSecretInt(sslSocket *ss, PK11SymKey *pms,
     }
 
     if (isDH) {
-        master_derive = CKM_NSS_TLS_EXTENDED_MASTER_KEY_DERIVE_DH;
+        master_derive = CKM_TLS12_EXTENDED_MASTER_KEY_DERIVE_DH;
     } else {
-        master_derive = CKM_NSS_TLS_EXTENDED_MASTER_KEY_DERIVE;
+        master_derive = CKM_TLS12_EXTENDED_MASTER_KEY_DERIVE;
         pms_version_ptr = &pms_version;
     }
 

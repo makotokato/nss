@@ -81,13 +81,10 @@ SHA256_Compress_Native(SHA256Context *ctx)
     vuint8mf4_t index;
     vbool32_t mask;
     size_t vl = __riscv_vsetvl_e32m1(4);
+    static const uint8_t maskValue[4] = { 0x14, 0x10, 0x04, 0x00 };
 
-    /* H0123:4567 -> H01256:H2367 */
-    uint32_t maskValue = 0x00041014;
-    __asm__("vsetivli zero, 1, e32, m1, ta, ma\n"
-            "vmv.v.x %0, %1"
-            : "=vr"(index)
-            : "r"(maskValue));
+    /* H0123:4567 -> H0145:H2367 */
+    index = __riscv_vle8_v_u8mf4(maskValue, vl);
 
     LOAD_K256()
 
@@ -140,6 +137,7 @@ SHA256_Update_Native(SHA256Context *ctx, const unsigned char *input,
     vuint8mf4_t index;
     size_t vl = __riscv_vsetvl_e32m1(4);
     unsigned int inBuf = ctx->sizeLo & 0x3f;
+    static const uint8_t maskValue[4] = { 0x14, 0x10, 0x04, 0x00 };
 
     if (!inputLen) {
         return;
@@ -164,14 +162,10 @@ SHA256_Update_Native(SHA256Context *ctx, const unsigned char *input,
         }
     }
 
-    /* H0123:4567 -> H0145:H2367 */
-    uint32_t maskValue = 0x00041014;
-    __asm__("vsetivli zero, 1, e32, m1, ta, ma\n"
-            "vmv.v.x %0, %1"
-            : "=vr"(index)
-            : "r"(maskValue));
-
     LOAD_K256()
+
+    /* H0123:4567 -> H0145:H2367 */
+    index = __riscv_vle8_v_u8mf4(maskValue, vl);
 
     h0 = __riscv_vluxei8_v_u32m1(ctx->h, index, vl);
     h1 = __riscv_vluxei8_v_u32m1(ctx->h + 2, index, vl);

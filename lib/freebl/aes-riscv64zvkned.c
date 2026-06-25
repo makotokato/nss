@@ -48,33 +48,33 @@ vaesdf_vs_u32m1(vuint32m1_t rd, vuint32m1_t vs2)
     return rd;
 }
 
-#define load_aes_key_128()                                  \
-    k1 = __riscv_vle32_v_u32m1(cx->k.expandedKey, 4);       \
-    k2 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 4, 4);   \
-    k3 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 8, 4);   \
-    k4 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 12, 4);  \
-    k5 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 16, 4);  \
-    k6 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 20, 4);  \
-    k7 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 24, 4);  \
-    k8 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 28, 4);  \
-    k9 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 32, 4);  \
-    k10 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 36, 4); \
-    k11 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 40, 4);
+#define load_aes_key_128()                                   \
+    k1 = __riscv_vle32_v_u32m1(cx->k.expandedKey, vl);       \
+    k2 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 4, vl);   \
+    k3 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 8, vl);   \
+    k4 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 12, vl);  \
+    k5 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 16, vl);  \
+    k6 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 20, vl);  \
+    k7 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 24, vl);  \
+    k8 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 28, vl);  \
+    k9 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 32, vl);  \
+    k10 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 36, vl); \
+    k11 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 40, vl);
 
-#define load_aes_key_192()                                  \
-    k1 = __riscv_vle32_v_u32m1(cx->k.expandedKey, 4);       \
-    k2 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 4, 4);   \
-    k3 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 8, 4);   \
-    k4 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 12, 4);  \
-    k5 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 16, 4);  \
-    k6 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 20, 4);  \
-    k7 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 24, 4);  \
-    k8 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 28, 4);  \
-    k9 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 32, 4);  \
-    k10 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 36, 4); \
-    k11 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 40, 4); \
-    k12 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 44, 4); \
-    k13 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 48, 4);
+#define load_aes_key_192()                                   \
+    k1 = __riscv_vle32_v_u32m1(cx->k.expandedKey, vl);       \
+    k2 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 4, vl);   \
+    k3 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 8, vl);   \
+    k4 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 12, vl);  \
+    k5 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 16, vl);  \
+    k6 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 20, vl);  \
+    k7 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 24, vl);  \
+    k8 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 28, vl);  \
+    k9 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 32, vl);  \
+    k10 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 36, vl); \
+    k11 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 40, vl); \
+    k12 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 44, vl); \
+    k13 = __riscv_vle32_v_u32m1(cx->k.expandedKey + 48, vl);
 
 #define load_aes_key_256()                                   \
     k1 = __riscv_vle32_v_u32m1(cx->k.expandedKey, vl);       \
@@ -260,7 +260,7 @@ riscv64zvkn_aes_encrypt_cbc_128(AESContext *cx, unsigned char *output,
         output += 16;
     }
 
-    __riscv_vse32_v_u32m1((PRUint32 *)cx->iv, iv, 4);
+    __riscv_vse32_v_u32m1((PRUint32 *)cx->iv, iv, vl);
     return SECSuccess;
 }
 

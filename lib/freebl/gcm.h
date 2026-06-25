@@ -86,6 +86,8 @@ pre_align struct gcmHashContextStr {
     uint64x2_t x, h;
 #elif defined(USE_PPC_CRYPTO)
     vec_u64 x, h;
+#elif defined(__riscv) && __riscv_xlen == 64
+    uint64_t x[2], h[2];
 #endif
     uint64_t x_low, x_high, h_high, h_low;
     unsigned char buffer[MAX_BLOCK_SIZE];

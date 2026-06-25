@@ -40,6 +40,9 @@ static const PRUint32 __attribute__((aligned(16))) K256[64] = {
     0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
 };
 
+/* for H0123:4567 -> H0145:H2367 */
+static const uint8_t maskValue[4] = { 0x14, 0x10, 0x04, 0x00 };
+
 #define ROUND(n, a, b, c, d)                              \
     {                                                     \
         t = __riscv_vadd_vv_u32m1(a, k##n, vl);           \
@@ -51,24 +54,24 @@ static const PRUint32 __attribute__((aligned(16))) K256[64] = {
         }                                                 \
     }
 
-#define LOAD_K256()                                 \
-    {                                               \
-        k0 = __riscv_vle32_v_u32m1(K256, vl);       \
-        k1 = __riscv_vle32_v_u32m1(K256 + 4, vl);   \
-        k2 = __riscv_vle32_v_u32m1(K256 + 8, vl);   \
-        k3 = __riscv_vle32_v_u32m1(K256 + 12, vl);  \
-        k4 = __riscv_vle32_v_u32m1(K256 + 16, vl);  \
-        k5 = __riscv_vle32_v_u32m1(K256 + 20, vl);  \
-        k6 = __riscv_vle32_v_u32m1(K256 + 24, vl);  \
-        k7 = __riscv_vle32_v_u32m1(K256 + 28, vl);  \
-        k8 = __riscv_vle32_v_u32m1(K256 + 32, vl);  \
-        k9 = __riscv_vle32_v_u32m1(K256 + 36, vl);  \
-        k10 = __riscv_vle32_v_u32m1(K256 + 40, vl); \
-        k11 = __riscv_vle32_v_u32m1(K256 + 44, vl); \
-        k12 = __riscv_vle32_v_u32m1(K256 + 48, vl); \
-        k13 = __riscv_vle32_v_u32m1(K256 + 52, vl); \
-        k14 = __riscv_vle32_v_u32m1(K256 + 56, vl); \
-        k15 = __riscv_vle32_v_u32m1(K256 + 60, vl); \
+#define LOAD_K256()                                \
+    {                                              \
+        k0 = __riscv_vle32_v_u32m1(K256, 4);       \
+        k1 = __riscv_vle32_v_u32m1(K256 + 4, 4);   \
+        k2 = __riscv_vle32_v_u32m1(K256 + 8, 4);   \
+        k3 = __riscv_vle32_v_u32m1(K256 + 12, 4);  \
+        k4 = __riscv_vle32_v_u32m1(K256 + 16, 4);  \
+        k5 = __riscv_vle32_v_u32m1(K256 + 20, 4);  \
+        k6 = __riscv_vle32_v_u32m1(K256 + 24, 4);  \
+        k7 = __riscv_vle32_v_u32m1(K256 + 28, 4);  \
+        k8 = __riscv_vle32_v_u32m1(K256 + 32, 4);  \
+        k9 = __riscv_vle32_v_u32m1(K256 + 36, 4);  \
+        k10 = __riscv_vle32_v_u32m1(K256 + 40, 4); \
+        k11 = __riscv_vle32_v_u32m1(K256 + 44, 4); \
+        k12 = __riscv_vle32_v_u32m1(K256 + 48, 4); \
+        k13 = __riscv_vle32_v_u32m1(K256 + 52, 4); \
+        k14 = __riscv_vle32_v_u32m1(K256 + 56, 4); \
+        k15 = __riscv_vle32_v_u32m1(K256 + 60, 4); \
     }
 
 void
@@ -79,24 +82,21 @@ SHA256_Compress_Native(SHA256Context *ctx)
     vuint32m1_t a, b, c, d;
     vuint32m1_t t;
     vuint8mf4_t index;
-    vbool32_t mask;
+    vbool32_t mask = __riscv_vreinterpret_v_u8m1_b32(__riscv_vmv_v_x_u8m1(1, 1));
     size_t vl = __riscv_vsetvl_e32m1(4);
-    static const uint8_t maskValue[4] = { 0x14, 0x10, 0x04, 0x00 };
-
-    /* H0123:4567 -> H0145:H2367 */
-    index = __riscv_vle8_v_u8mf4(maskValue, vl);
 
     LOAD_K256()
 
-    h0 = __riscv_vluxei8_v_u32m1(ctx->h, index, vl);
-    h1 = __riscv_vluxei8_v_u32m1(ctx->h + 2, index, vl);
+    /* H0123:4567 -> H0145:H2367 */
+    index = __riscv_vle8_v_u8mf4(maskValue, 4);
+    h0 = __riscv_vluxei8_v_u32m1(ctx->h, index, 4);
+    h1 = __riscv_vluxei8_v_u32m1(ctx->h + 2, index, 4);
 
-    a = __riscv_vrev8_v_u32m1(__riscv_vle32_v_u32m1(ctx->u.w, vl), vl);
-    b = __riscv_vrev8_v_u32m1(__riscv_vle32_v_u32m1(ctx->u.w + 4, vl), vl);
-    c = __riscv_vrev8_v_u32m1(__riscv_vle32_v_u32m1(ctx->u.w + 8, vl), vl);
-    d = __riscv_vrev8_v_u32m1(__riscv_vle32_v_u32m1(ctx->u.w + 12, vl), vl);
+    a = __riscv_vrev8_v_u32m1(__riscv_vle32_v_u32m1(ctx->u.w, vl), 4);
+    b = __riscv_vrev8_v_u32m1(__riscv_vle32_v_u32m1(ctx->u.w + 4, vl), 4);
+    c = __riscv_vrev8_v_u32m1(__riscv_vle32_v_u32m1(ctx->u.w + 8, vl), 4);
+    d = __riscv_vrev8_v_u32m1(__riscv_vle32_v_u32m1(ctx->u.w + 12, vl), 4);
 
-    mask = __riscv_vreinterpret_v_u8m1_b32(__riscv_vmv_v_x_u8m1(1, 1));
     w0 = h0;
     w1 = h1;
 
@@ -117,12 +117,12 @@ SHA256_Compress_Native(SHA256Context *ctx)
     ROUND(14, c, d, a, b)
     ROUND(15, d, a, b, c)
 
-    h0 = __riscv_vadd_vv_u32m1(h0, w0, vl);
-    h1 = __riscv_vadd_vv_u32m1(h1, w1, vl);
+    h0 = __riscv_vadd_vv_u32m1(h0, w0, 4);
+    h1 = __riscv_vadd_vv_u32m1(h1, w1, 4);
 
     /* H0145:2367 -> H0123:4567 */
-    __riscv_vsuxei8_v_u32m1(ctx->h, index, h0, vl);
-    __riscv_vsuxei8_v_u32m1(ctx->h + 2, index, h1, vl);
+    __riscv_vsuxei8_v_u32m1(ctx->h, index, h0, 4);
+    __riscv_vsuxei8_v_u32m1(ctx->h + 2, index, h1, 4);
 }
 
 void
@@ -133,11 +133,10 @@ SHA256_Update_Native(SHA256Context *ctx, const unsigned char *input,
     vuint32m1_t h0, h1, w0, w1;
     vuint32m1_t a, b, c, d;
     vuint32m1_t t;
-    vbool32_t mask;
+    vbool32_t mask = __riscv_vreinterpret_v_u8m1_b32(__riscv_vmv_v_x_u8m1(1, 1));
     vuint8mf4_t index;
     size_t vl = __riscv_vsetvl_e32m1(4);
     unsigned int inBuf = ctx->sizeLo & 0x3f;
-    static const uint8_t maskValue[4] = { 0x14, 0x10, 0x04, 0x00 };
 
     if (!inputLen) {
         return;
@@ -166,10 +165,8 @@ SHA256_Update_Native(SHA256Context *ctx, const unsigned char *input,
 
     /* H0123:4567 -> H0145:H2367 */
     index = __riscv_vle8_v_u8mf4(maskValue, vl);
-
     h0 = __riscv_vluxei8_v_u32m1(ctx->h, index, vl);
     h1 = __riscv_vluxei8_v_u32m1(ctx->h + 2, index, vl);
-    mask = __riscv_vreinterpret_v_u8m1_b32(__riscv_vmv_v_x_u8m1(1, 1));
 
     /* if enough data to fill one or more whole buffers, process them. */
     while (inputLen >= SHA256_BLOCK_LENGTH) {

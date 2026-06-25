@@ -180,13 +180,13 @@ endif
 endif
 ifeq ($(CPU_ARCH),riscv64)
     ifdef CC_IS_CLANG
-        DEFINES += -DUSE_HW_AES -DUSE_HW_SHA2
-        EXTRA_SRCS += aes-riscv64zvkn.c sha256-riscv64zvknh.c
+        DEFINES += -DUSE_HW_AES -DUSE_HW_SHA2 -DHAVE_PLATFORM_GHASH
+        EXTRA_SRCS += aes-riscv64zvkn.c ghash-riscv64zvkg.c sha256-riscv64zvknh.c
     else ifeq (1,$(CC_IS_GCC))
 	# GCC 13 supports Vector extensions, but some types aren't defined.
         ifeq (,$(filter 0 1 2 3 4 5 6 7 8 9 10 11 12 13,$(word 1,$(GCC_VERSION))))
-            DEFINES += -DUSE_HW_AES -DUSE_HW_SHA2
-            EXTRA_SRCS += aes-riscv64zvkn.c sha256-riscv64zvknh.c
+            DEFINES += -DUSE_HW_AES -DUSE_HW_SHA2 -DHAVE_PLATFORM_GHASH
+            EXTRA_SRCS += aes-riscv64zvkn.c ghash-riscv64zvkg.c sha256-riscv64zvknh.c
         endif
     endif
 endif
@@ -795,6 +795,7 @@ endif
 
 ifeq ($(CPU_ARCH),riscv64)
 $(OBJDIR)$(PROG_PREFIX)aes-riscv64zvkn$(OBJ_SUFFIX): CFLAGS += -march=rv64gcv_zvkned
+$(OBJDIR)$(PROG_PREFIX)ghash-riscv64zvkg$(OBJ_SUFFIX): CFLAGS += -march=rv64gcv_zvkg
 $(OBJDIR)$(PROG_PREFIX)sha256-riscv64zvknh$(OBJ_SUFFIX): CFLAGS += -march=rv64gcv_zvknhb_zvkb
 endif
 

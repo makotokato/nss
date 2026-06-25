@@ -20,28 +20,28 @@
 
 #include <riscv_vector.h>
 
-vuint32m1_t
+static vuint32m1_t
 vsha2cl_vv_u32m1(vuint32m1_t vd, vuint32m1_t vs2, vuint32m1_t vs1)
 {
     __asm__("vsha2cl.vv %0, %1, %2" : "+vr"(vd) : "vr"(vs2), "vr"(vs1));
     return vd;
 }
 
-vuint32m1_t
+static vuint32m1_t
 vsha2ch_vv_u32m1(vuint32m1_t vd, vuint32m1_t vs2, vuint32m1_t vs1)
 {
     __asm__("vsha2ch.vv %0, %1, %2" : "+vr"(vd) : "vr"(vs2), "vr"(vs1));
     return vd;
 }
 
-vuint32m1_t
+static vuint32m1_t
 vsha2ms_vv_u32m1(vuint32m1_t vd, vuint32m1_t vs2, vuint32m1_t vs1)
 {
     __asm__("vsha2ms.vv %0, %1, %2" : "+vr"(vd) : "vr"(vs2), "vr"(vs1));
     return vd;
 }
 
-vuint32m1_t
+static vuint32m1_t
 vrev8_v_u32m1(vuint32m1_t vs2)
 {
     vuint32m1_t vd;

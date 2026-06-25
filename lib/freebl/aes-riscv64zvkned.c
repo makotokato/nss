@@ -684,7 +684,7 @@ riscv64zvkn_key_expansion_256(AESContext *cx, const unsigned char *key)
     // so we use inline assembly to avoid the warning.
     __asm__(
         "vmv.v.v    %0, %13\n"
-        "vaeskf2.vi %0, %1, 2\n"
+        "vaeskf2.vi %0, %14, 2\n"
         "vmv.v.v    %1, %14\n"
         "vaeskf2.vi %1, %0, 3\n"
         "vmv.v.v    %2, %0\n"
@@ -708,7 +708,7 @@ riscv64zvkn_key_expansion_256(AESContext *cx, const unsigned char *key)
         "vmv.v.v    %11, %9\n"
         "vaeskf2.vi %11, %10, 13\n"
         "vmv.v.v    %12, %10\n"
-        "vaeskf2.vi %12, %11, 13\n"
+        "vaeskf2.vi %12, %11, 14\n"
         : "=vr"(k3), "=vr"(k4), "=vr"(k5), "=vr"(k6), "=vr"(k7), "=vr"(k8),
           "=vr"(k9), "=vr"(k10), "=vr"(k11), "=vr"(k12), "=vr"(k13),
           "=vr"(k14), "=vr"(k15)

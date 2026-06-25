@@ -46,6 +46,7 @@ static PRBool ppc_crypto_support_ = PR_FALSE;
 static PRBool rv_zvkned_support_ = PR_FALSE;
 static PRBool rv_zvknha_support_ = PR_FALSE;
 static PRBool rv_zvknhb_support_ = PR_FALSE;
+static PRBool rv_zvkg_support_ = PR_FALSE;
 
 #ifdef NSS_X86_OR_X64
 /*
@@ -449,6 +450,11 @@ CheckARMSupport()
 #endif
 #endif
 
+/* Older kernel headers may predate the Zvkg probe bit. */
+#ifndef RISCV_HWPROBE_EXT_ZVKG
+#define RISCV_HWPROBE_EXT_ZVKG (1 << 20)
+#endif
+
 static void
 CheckRVSupport()
 {
@@ -459,6 +465,9 @@ CheckRVSupport()
     if (syscall(__NR_riscv_hwprobe, probe, 1, 0, 0, 0) == 0) {
         if (probe[0].value & RISCV_HWPROBE_EXT_ZVKNED) {
             rv_zvkned_support_ = PR_TRUE;
+        }
+        if (probe[0].value & RISCV_HWPROBE_EXT_ZVKG) {
+            rv_zvkg_support_ = PR_TRUE;
         }
         if (probe[0].value & RISCV_HWPROBE_EXT_ZVKB) {
             if (probe[0].value & RISCV_HWPROBE_EXT_ZVKNHA) {
@@ -476,6 +485,7 @@ CheckRVSupport()
     rv_zvkned_support_ &= PR_GetEnvSecure("NSS_DISABLE_HW_AES") == NULL;
     rv_zvknha_support_ &= PR_GetEnvSecure("NSS_DISABLE_HW_SHA2") == NULL;
     rv_zvknhb_support_ &= PR_GetEnvSecure("NSS_DISABLE_HW_SHA2") == NULL;
+    rv_zvkg_support_ &= PR_GetEnvSecure("NSS_DISABLE_PMULL") == NULL;
 }
 #endif /* __riscv && __riscv_xlen == 64 */
 
@@ -563,6 +573,11 @@ PRBool
 rv_sha2_support()
 {
     return rv_zvknha_support_ || rv_zvknhb_support_;
+}
+PRBool
+rv_zvkg_support()
+{
+    return rv_zvkg_support_;
 }
 
 #if defined(__powerpc__)

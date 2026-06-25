@@ -101,6 +101,22 @@
         }],
       ]
     },
+    {
+      'target_name': 'ghash-aes-riscv64zvkg_c_lib',
+      'type': 'static_library',
+      'sources': [
+        'ghash-riscv64zvkg.c'
+      ],
+      'dependencies': [
+        '<(DEPTH)/exports.gyp:nss_exports'
+      ],
+      'cflags': [
+        '-march=rv64gcv_zvkg'
+      ],
+      'cflags_mozilla': [
+        '-march=rv64gcv_zvkg'
+      ]
+    },
   ],
   'variables': {
     'module': 'nss',

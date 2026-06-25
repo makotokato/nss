@@ -46,6 +46,14 @@
           'HAVE_PLATFORM_GHASH'
         ]
       }],
+      [ 'target_arch=="riscv64"', {
+        'dependencies': [
+          'ghash.gyp:ghash-aes-riscv64zvkg_c_lib',
+        ],
+        'defines': [
+          'HAVE_PLATFORM_GHASH'
+	]
+      }],
       [ 'OS=="linux"', {
         'defines': [
           'FREEBL_NO_DEPEND',

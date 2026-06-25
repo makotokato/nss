@@ -639,23 +639,16 @@ riscv64zvkn_key_expansion_128(AESContext *cx, const unsigned char *key)
 
     vl = __riscv_vsetvl_e32m1(4);
     k1 = __riscv_vle32_v_u32m1((const PRUint32 *)key, vl);
-
-    // gcc will throw an warning if imm value of vaeskf1.vi is not a constant,
-    // so we use inline assembly to avoid the warning.
-    __asm__(
-        "vaeskf1.vi %0, %10, 1\n"
-        "vaeskf1.vi %1, %0, 2\n"
-        "vaeskf1.vi %2, %1, 3\n"
-        "vaeskf1.vi %3, %2, 4\n"
-        "vaeskf1.vi %4, %3, 5\n"
-        "vaeskf1.vi %5, %4, 6\n"
-        "vaeskf1.vi %6, %5, 7\n"
-        "vaeskf1.vi %7, %6, 8\n"
-        "vaeskf1.vi %8, %7, 9\n"
-        "vaeskf1.vi %9, %8, 10\n"
-        : "=vr"(k2), "=vr"(k3), "=vr"(k4), "=vr"(k5), "=vr"(k6), "=vr"(k7),
-          "=vr"(k8), "=vr"(k9), "=vr"(k10), "=vr"(k11)
-        : "vr"(k1));
+    k2 = __riscv_vaeskf1_vi_u32m1(k1, 1, vl);
+    k3 = __riscv_vaeskf1_vi_u32m1(k2, 2, vl);
+    k4 = __riscv_vaeskf1_vi_u32m1(k3, 3, vl);
+    k5 = __riscv_vaeskf1_vi_u32m1(k4, 4, vl);
+    k6 = __riscv_vaeskf1_vi_u32m1(k5, 5, vl);
+    k7 = __riscv_vaeskf1_vi_u32m1(k6, 6, vl);
+    k8 = __riscv_vaeskf1_vi_u32m1(k7, 7, vl);
+    k9 = __riscv_vaeskf1_vi_u32m1(k8, 8, vl);
+    k10 = __riscv_vaeskf1_vi_u32m1(k9, 9, vl);
+    k11 = __riscv_vaeskf1_vi_u32m1(k10, 10, vl);
 
     __riscv_vse32_v_u32m1(cx->k.expandedKey, k1, vl);
     __riscv_vse32_v_u32m1(cx->k.expandedKey + 4, k2, vl);
@@ -679,40 +672,19 @@ riscv64zvkn_key_expansion_256(AESContext *cx, const unsigned char *key)
     vl = __riscv_vsetvl_e32m1(4);
     k1 = __riscv_vle32_v_u32m1((const PRUint32 *)key, vl);
     k2 = __riscv_vle32_v_u32m1((const PRUint32 *)(key + 16), vl);
-
-    // gcc will throw an warning if imm value of vaeskf2.vi is not a constant,
-    // so we use inline assembly to avoid the warning.
-    __asm__(
-        "vmv.v.v    %0, %13\n"
-        "vaeskf2.vi %0, %14, 2\n"
-        "vmv.v.v    %1, %14\n"
-        "vaeskf2.vi %1, %0, 3\n"
-        "vmv.v.v    %2, %0\n"
-        "vaeskf2.vi %2, %1, 4\n"
-        "vmv.v.v    %3, %1\n"
-        "vaeskf2.vi %3, %2, 5\n"
-        "vmv.v.v    %4, %2\n"
-        "vaeskf2.vi %4, %3, 6\n"
-        "vmv.v.v    %5, %3\n"
-        "vaeskf2.vi %5, %4, 7\n"
-        "vmv.v.v    %6, %4\n"
-        "vaeskf2.vi %6, %5, 8\n"
-        "vmv.v.v    %7, %5\n"
-        "vaeskf2.vi %7, %6, 9\n"
-        "vmv.v.v    %8, %6\n"
-        "vaeskf2.vi %8, %7, 10\n"
-        "vmv.v.v    %9, %7\n"
-        "vaeskf2.vi %9, %8, 11\n"
-        "vmv.v.v    %10, %8\n"
-        "vaeskf2.vi %10, %9, 12\n"
-        "vmv.v.v    %11, %9\n"
-        "vaeskf2.vi %11, %10, 13\n"
-        "vmv.v.v    %12, %10\n"
-        "vaeskf2.vi %12, %11, 14\n"
-        : "=vr"(k3), "=vr"(k4), "=vr"(k5), "=vr"(k6), "=vr"(k7), "=vr"(k8),
-          "=vr"(k9), "=vr"(k10), "=vr"(k11), "=vr"(k12), "=vr"(k13),
-          "=vr"(k14), "=vr"(k15)
-        : "vr"(k1), "vr"(k2));
+    k3 = __riscv_vaeskf2_vi_u32m1(k1, k2, 2, vl);
+    k4 = __riscv_vaeskf2_vi_u32m1(k2, k3, 3, vl);
+    k5 = __riscv_vaeskf2_vi_u32m1(k3, k4, 4, vl);
+    k6 = __riscv_vaeskf2_vi_u32m1(k4, k5, 5, vl);
+    k7 = __riscv_vaeskf2_vi_u32m1(k5, k6, 6, vl);
+    k8 = __riscv_vaeskf2_vi_u32m1(k6, k7, 7, vl);
+    k9 = __riscv_vaeskf2_vi_u32m1(k7, k8, 8, vl);
+    k10 = __riscv_vaeskf2_vi_u32m1(k8, k9, 9, vl);
+    k11 = __riscv_vaeskf2_vi_u32m1(k9, k10, 10, vl);
+    k12 = __riscv_vaeskf2_vi_u32m1(k10, k11, 11, vl);
+    k13 = __riscv_vaeskf2_vi_u32m1(k11, k12, 12, vl);
+    k14 = __riscv_vaeskf2_vi_u32m1(k12, k13, 13, vl);
+    k15 = __riscv_vaeskf2_vi_u32m1(k13, k14, 14, vl);
 
     __riscv_vse32_v_u32m1(cx->k.expandedKey, k1, vl);
     __riscv_vse32_v_u32m1(cx->k.expandedKey + 4, k2, vl);

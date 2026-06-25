@@ -23,8 +23,7 @@ platform_ghash_support()
 SECStatus
 gcm_HashWrite_hw(gcmHashContext *ghash, unsigned char *outbuf)
 {
-    vuint8m1_t v = __riscv_vle8_v_u8m1((const uint8_t *)ghash->x, 16);
-    __riscv_vse8_v_u8m1(outbuf, v, 16);
+    memcpy(outbuf, ghash->x, 16);
     return SECSuccess;
 }
 
@@ -32,8 +31,6 @@ SECStatus
 gcm_HashMult_hw(gcmHashContext *ghash, const unsigned char *buf,
                 unsigned int count)
 {
-    size_t vl = __riscv_vsetvl_e32m1(4);
-
     vuint32m1_t h = __riscv_vreinterpret_v_u8m1_u32m1(
         __riscv_vle8_v_u8m1((const uint8_t *)ghash->h, 16));
     vuint32m1_t y = __riscv_vreinterpret_v_u8m1_u32m1(
@@ -44,7 +41,7 @@ gcm_HashMult_hw(gcmHashContext *ghash, const unsigned char *buf,
         vuint32m1_t x = __riscv_vreinterpret_v_u8m1_u32m1(
             __riscv_vle8_v_u8m1(buf, 16));
         /* Y = (Y ^ X) . H */
-        y = __riscv_vghsh_vv_u32m1(y, h, x, vl);
+        y = __riscv_vghsh_vv_u32m1(y, h, x, 4);
     }
 
     __riscv_vse8_v_u8m1((uint8_t *)ghash->x,

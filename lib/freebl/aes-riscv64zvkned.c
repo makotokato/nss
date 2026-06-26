@@ -228,7 +228,7 @@ riscv64zvkn_aes_encrypt_cbc_128(AESContext *cx, unsigned char *output,
         output += 16;
     }
 
-    __riscv_vse32_v_u32m1((PRUint32 *)cx->iv, iv, vl);
+    __riscv_vse32_v_u32m1((PRUint32 *)cx->iv, iv, 4);
     return SECSuccess;
 }
 
@@ -275,7 +275,7 @@ riscv64zvkn_aes_encrypt_cbc_192(AESContext *cx, unsigned char *output,
         output += 16;
     }
 
-    __riscv_vse32_v_u32m1((PRUint32 *)cx->iv, iv, vl);
+    __riscv_vse32_v_u32m1((PRUint32 *)cx->iv, iv, 4);
     return SECSuccess;
 }
 
@@ -324,7 +324,7 @@ riscv64zvkn_aes_encrypt_cbc_256(AESContext *cx, unsigned char *output,
         output += 16;
     }
 
-    __riscv_vse32_v_u32m1((PRUint32 *)cx->iv, iv, vl);
+    __riscv_vse32_v_u32m1((PRUint32 *)cx->iv, iv, 4);
     return SECSuccess;
 }
 
@@ -494,7 +494,7 @@ riscv64zvkn_aes_decrypt_cbc_128(AESContext *cx, unsigned char *output,
         output += 16;
     }
 
-    __riscv_vse32_v_u32m1((PRUint32 *)(cx->iv), iv, vl);
+    __riscv_vse32_v_u32m1((PRUint32 *)(cx->iv), iv, 4);
     return SECSuccess;
 }
 
@@ -542,7 +542,7 @@ riscv64zvkn_aes_decrypt_cbc_192(AESContext *cx, unsigned char *output,
         output += 16;
     }
 
-    __riscv_vse32_v_u32m1((PRUint32 *)(cx->iv), iv, vl);
+    __riscv_vse32_v_u32m1((PRUint32 *)(cx->iv), iv, 4);
     return SECSuccess;
 }
 
@@ -592,7 +592,7 @@ riscv64zvkn_aes_decrypt_cbc_256(AESContext *cx, unsigned char *output,
         output += 16;
     }
 
-    __riscv_vse32_v_u32m1((PRUint32 *)(cx->iv), iv, vl);
+    __riscv_vse32_v_u32m1((PRUint32 *)(cx->iv), iv, 4);
     return SECSuccess;
 }
 

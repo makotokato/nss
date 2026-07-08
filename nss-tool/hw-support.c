@@ -16,7 +16,7 @@
 #include "blapii.h"
 #include "nss.h"
 
-int main(int argc, char const *argv[]) {
+int main(int argc, char const* argv[]) {
   BL_Init();
   printf("\n\n ========== NSS Hardware Report ==========\n");
 #if defined(NSS_X86_OR_X64)
@@ -35,6 +35,8 @@ int main(int argc, char const *argv[]) {
   printf("\tPMULL \t%s supported\n", arm_pmull_support() ? "" : "not");
   printf("\tSHA1 \t%s supported\n", arm_sha1_support() ? "" : "not");
   printf("\tSHA2 \t%s supported\n", arm_sha2_support() ? "" : "not");
+#elif defined(__riscv) && __riscv_xlen == 64
+  printf("\tAES \t%s supported\n", rv_vaes_support() ? "" : "not");
 #endif
   printf(" ========== Hardware Report End ==========\n\n\n");
   BL_Cleanup();

@@ -25,6 +25,10 @@
 #include <TargetConditionals.h>
 #endif
 
+#ifndef __has_include
+#define __has_include(x) 0
+#endif
+
 static PRCallOnceType coFreeblInit;
 
 /* State variables. */
@@ -150,9 +154,6 @@ CheckX86CPUSupport()
 
 /* clang-format off */
 #if (defined(__aarch64__) || defined(__arm__)) && !defined(TARGET_OS_IPHONE)
-#ifndef __has_include
-#define __has_include(x) 0
-#endif
 #if (__has_include(<sys/auxv.h>) || defined(__linux__)) && \
     defined(__GNUC__) && __GNUC__ >= 2 && defined(__ELF__)
 /* This might be conflict with host compiler */
@@ -448,11 +449,6 @@ CheckARMSupport()
 #if __has_include(<asm/hwprobe.h>)
 #include <asm/hwprobe.h>
 #endif
-#endif
-
-/* Older kernel headers may predate the Zvkg probe bit. */
-#ifndef RISCV_HWPROBE_EXT_ZVKG
-#define RISCV_HWPROBE_EXT_ZVKG (1 << 20)
 #endif
 
 static void

@@ -46,7 +46,7 @@
           'HAVE_PLATFORM_GHASH'
         ]
       }],
-      [ 'target_arch=="riscv64"', {
+      [ 'disable_rv64zvkn==0 and target_arch=="riscv64"', {
         'dependencies': [
           'ghash.gyp:ghash-aes-riscv64zvkg_c_lib',
         ],

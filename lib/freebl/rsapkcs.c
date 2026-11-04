@@ -1212,6 +1212,15 @@ RSA_DecryptBlock(RSAPrivateKey *key,
         return SECFailure;
     }
 
+    /* The ciphertext must be less than the modulus. This only depends on
+     * public values, so reject it here rather than letting the private key
+     * operation fail below, which would produce implicit rejection output. */
+    if (memcmp(input, key->modulus.data + (key->modulus.len - modulusLen),
+               modulusLen) >= 0) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
     /* Allocate enough space to decrypt */
     buffer = PORT_ZAlloc(modulusLen);
     if (!buffer) {
@@ -1409,6 +1418,7 @@ RSA_EMSAEncodePSS(unsigned char *em,
  */
 static SECStatus
 emsa_pss_verify(const unsigned char *mHash,
+                unsigned int mHashLen,
                 const unsigned char *em,
                 unsigned int emLen,
                 unsigned int emBits,
@@ -1426,6 +1436,11 @@ emsa_pss_verify(const unsigned char *mHash,
     SECStatus rv;
 
     hash = HASH_GetRawHashObject(hashAlg);
+
+    if (mHashLen < hash->length) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
 
     /* Step 3 + 4 */
     if ((saltLen > emLen) ||
@@ -1608,7 +1623,7 @@ RSA_CheckSignPSS(RSAPublicKey *key,
         emLen--;
         em++;
     }
-    rv = emsa_pss_verify(hash, em, emLen, modulusBits - 1, hashAlg,
+    rv = emsa_pss_verify(hash, hashLen, em, emLen, modulusBits - 1, hashAlg,
                          maskHashAlg, saltLength);
 
     PORT_Free(buffer);

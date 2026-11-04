@@ -705,8 +705,8 @@ merge_object_instances(
     return rv;
 }
 
-static NSSCertificate *
-add_cert_to_cache(
+NSS_IMPLEMENT NSSCertificate *
+nssTrustDomain_AddCertToCache(
     NSSTrustDomain *td,
     NSSCertificate *cert)
 {
@@ -745,10 +745,11 @@ add_cert_to_cache(
         /* merge the instances of the cert */
         if (merge_object_instances(&rvCert->object, &cert->object) != SECSuccess) {
             nssCertificate_Destroy(rvCert);
+            nssCertificate_Destroy(cert); // consume the owned reference to cert
             return NULL;
         }
         STAN_ForceCERTCertificateUpdate(rvCert);
-        nssCertificate_Destroy(cert);
+        nssCertificate_Destroy(cert); // consume the owned reference to cert
         return rvCert;
     }
     /* create a new cache entry for this cert within the cert's arena*/
@@ -771,18 +772,12 @@ add_cert_to_cache(
     added++;
     /* If a new subject entry was created, also need nickname and/or email */
     if (subjectList != NULL) {
-#ifdef nodef
-        PRBool handle = PR_FALSE;
-#endif
         if (certNickname) {
             nssrv = add_nickname_entry(arena, td->cache,
                                        certNickname, subjectList);
             if (nssrv != PR_SUCCESS) {
                 goto loser;
             }
-#ifdef nodef
-            handle = PR_TRUE;
-#endif
             added++;
         }
         if (cert->email) {
@@ -790,27 +785,13 @@ add_cert_to_cache(
             if (nssrv != PR_SUCCESS) {
                 goto loser;
             }
-#ifdef nodef
-            handle = PR_TRUE;
-#endif
             added += 2;
         }
-#ifdef nodef
-        /* I think either a nickname or email address must be associated
-         * with the cert.  However, certs are passed to NewTemp without
-         * either.  This worked in the old code, so it must work now.
-         */
-        if (!handle) {
-            /* Require either nickname or email handle */
-            nssrv = PR_FAILURE;
-            goto loser;
-        }
-#endif
     } else {
         /* A new subject entry was not created.  arena is unused. */
         nssArena_Destroy(arena);
     }
-    rvCert = cert;
+    rvCert = cert; // rvCert is now the owned reference to cert
     PR_Unlock(td->cache->lock);
     nss_ZFreeIf(certNickname);
     return rvCert;
@@ -840,26 +821,8 @@ loser:
         nssArena_Destroy(arena);
     }
     PR_Unlock(td->cache->lock);
+    nssCertificate_Destroy(cert); // consume the owned reference to cert
     return NULL;
-}
-
-NSS_IMPLEMENT PRStatus
-nssTrustDomain_AddCertsToCache(
-    NSSTrustDomain *td,
-    NSSCertificate **certs,
-    PRUint32 numCerts)
-{
-    PRUint32 i;
-    NSSCertificate *c;
-    for (i = 0; i < numCerts && certs[i]; i++) {
-        c = add_cert_to_cache(td, certs[i]);
-        if (c == NULL) {
-            return PR_FAILURE;
-        } else {
-            certs[i] = c;
-        }
-    }
-    return PR_SUCCESS;
 }
 
 static NSSCertificate **
@@ -1044,31 +1007,6 @@ nssTrustDomain_GetCertForIssuerAndSNFromCache(
 #endif
     }
     PR_Unlock(td->cache->lock);
-    return rvCert;
-}
-
-/*
- * Look for a specific cert in the cache
- */
-NSS_IMPLEMENT NSSCertificate *
-nssTrustDomain_GetCertByDERFromCache(
-    NSSTrustDomain *td,
-    NSSDER *der)
-{
-    PRStatus nssrv = PR_FAILURE;
-    NSSDER issuer, serial;
-    NSSCertificate *rvCert;
-    nssrv = nssPKIX509_GetIssuerAndSerialFromDER(der, &issuer, &serial);
-    if (nssrv != PR_SUCCESS) {
-        return NULL;
-    }
-#ifdef DEBUG_CACHE
-    log_item_dump("looking for cert by DER", der);
-#endif
-    rvCert = nssTrustDomain_GetCertForIssuerAndSNFromCache(td,
-                                                           &issuer, &serial);
-    PORT_Free(issuer.data);
-    PORT_Free(serial.data);
     return rvCert;
 }
 

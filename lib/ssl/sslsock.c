@@ -96,9 +96,11 @@ static sslOptions ssl_defaults = {
     .enableTls13GreaseEch = PR_FALSE,
     .enableTls13BackendEch = PR_FALSE,
     .callExtensionWriterOnEchInner = PR_FALSE,
+    .enableEchXtnCompression = PR_TRUE,
     .enableGrease = PR_FALSE,
     .enableChXtnPermutation = PR_FALSE,
     .dbLoadCertChain = PR_TRUE,
+    .enablePlaintextResumptionExport = PR_FALSE,
 };
 
 /*
@@ -148,20 +150,20 @@ static const PRUint16 srtpCiphers[] = {
 /* This list is in preference order.  Note that while some smaller groups appear
  * early in the list, smaller groups are generally ignored when iterating
  * through this list. ffdhe_custom must not appear in this list. */
-#define ECGROUP(name, size, oid, assumeSupported)  \
-    {                                              \
-        ssl_grp_ec_##name, size, ssl_kea_ecdh,     \
-            SEC_OID_SECG_EC_##oid, assumeSupported \
+#define ECGROUP(name, size, oid, assumeSupported) \
+    {                                             \
+        ssl_grp_ec_##name, size, ssl_kea_ecdh,    \
+        SEC_OID_SECG_EC_##oid, assumeSupported    \
     }
 #define FFGROUP(size)                           \
     {                                           \
         ssl_grp_ffdhe_##size, size, ssl_kea_dh, \
-            SEC_OID_TLS_FFDHE_##size, PR_TRUE   \
+        SEC_OID_TLS_FFDHE_##size, PR_TRUE       \
     }
 #define HYGROUP(first, second, size, first_oid, second_oid, assumeSupported) \
     {                                                                        \
         ssl_grp_kem_##first##second, size, ssl_kea_ecdh_hybrid,              \
-            SEC_OID_##first_oid##second_oid, assumeSupported                 \
+        SEC_OID_##first_oid##second_oid, assumeSupported                     \
     }
 
 const sslNamedGroupDef ssl_named_groups[] = {
@@ -174,7 +176,7 @@ const sslNamedGroupDef ssl_named_groups[] = {
     ECGROUP(secp521r1, 521, SECP521R1, PR_TRUE),
     HYGROUP(secp256r1, mlkem768, 256, SECP256R1, MLKEM768, PR_TRUE),
     HYGROUP(secp384r1, mlkem1024, 256, SECP384R1, MLKEM1024, PR_TRUE),
-    { ssl_grp_kem_xyber768d00, 256, ssl_kea_ecdh_hybrid, SEC_OID_XYBER768D00, PR_FALSE },
+    { ssl_grp_kem_mlkem1024, 256, ssl_kea_kem, SEC_OID_ML_KEM_1024, PR_TRUE },
     FFGROUP(2048),
     FFGROUP(3072),
     FFGROUP(4096),
@@ -1023,6 +1025,12 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRIntn val)
             break;
 
         case SSL_SUPPRESS_END_OF_EARLY_DATA:
+            /* DTLS has no EndOfEarlyData to suppress (RFC 9147, Section 5.6). */
+            if (IS_DTLS(ss) && val) {
+                PORT_SetError(SEC_ERROR_INVALID_ARGS);
+                rv = SECFailure;
+                break;
+            }
             ss->opt.suppressEndOfEarlyData = val;
             break;
 
@@ -2611,9 +2619,15 @@ SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd)
 
     /* Reset handshake PSKs on the target socket, re-populating from
      * the (newly copied) external PSK if present.  Pass |ss| (not
-     * |sm|) so that selectedPsk is cleared on the correct socket. */
+     * |sm|) so that selectedPsk is cleared on the correct socket.
+     * ss->ssl3.hs.psks and ss->xtnData are handshake state, so take the
+     * handshake locks, as SSLExp_{Add,Remove}ExternalPsk do. */
+    ssl_Get1stHandshakeLock(ss);
+    ssl_GetSSL3HandshakeLock(ss);
     ss->xtnData.selectedPsk = NULL;
     rv = tls13_ResetHandshakePsks(ss, &ss->ssl3.hs.psks);
+    ssl_ReleaseSSL3HandshakeLock(ss);
+    ssl_Release1stHandshakeLock(ss);
     if (rv != SECSuccess) {
         return NULL;
     }
@@ -4106,7 +4120,8 @@ ssl_NewKeyPair(SECKEYPrivateKey *privKey, SECKEYPublicKey *pubKey)
 sslKeyPair *
 ssl_GetKeyPairRef(sslKeyPair *keyPair)
 {
-    PR_ATOMIC_INCREMENT(&keyPair->refCount);
+    PRInt32 newCount = PR_ATOMIC_INCREMENT(&keyPair->refCount);
+    PORT_ReleaseAssert(newCount > 1);
     return keyPair;
 }
 
@@ -4118,6 +4133,7 @@ ssl_FreeKeyPair(sslKeyPair *keyPair)
     }
 
     PRInt32 newCount = PR_ATOMIC_DECREMENT(&keyPair->refCount);
+    PORT_ReleaseAssert(newCount >= 0);
     if (!newCount) {
         SECKEY_DestroyPrivateKey(keyPair->privKey);
         SECKEY_DestroyPublicKey(keyPair->pubKey);
@@ -4126,11 +4142,14 @@ ssl_FreeKeyPair(sslKeyPair *keyPair)
 }
 
 /* Ephemeral key handling. */
+
+/* Allocate an ephemeral key pair for a group, taking ownership of an
+ * already-built sslKeyPair. `keys` may be NULL, e.g. for a standalone KEM
+ * group that has no ECDH key pair and populates the kemKeys/kemCt fields
+ * separately. */
 sslEphemeralKeyPair *
-ssl_NewEphemeralKeyPair(const sslNamedGroupDef *group,
-                        SECKEYPrivateKey *privKey, SECKEYPublicKey *pubKey)
+ssl_NewEphemeralKeyPairWithKeys(const sslNamedGroupDef *group, sslKeyPair *keys)
 {
-    sslKeyPair *keys;
     sslEphemeralKeyPair *pair;
 
     if (!group) {
@@ -4138,14 +4157,8 @@ ssl_NewEphemeralKeyPair(const sslNamedGroupDef *group,
         return NULL;
     }
 
-    keys = ssl_NewKeyPair(privKey, pubKey);
-    if (!keys) {
-        return NULL;
-    }
-
     pair = PORT_ZNew(sslEphemeralKeyPair);
     if (!pair) {
-        ssl_FreeKeyPair(keys);
         return NULL; /* error already set */
     }
 
@@ -4154,6 +4167,27 @@ ssl_NewEphemeralKeyPair(const sslNamedGroupDef *group,
     pair->keys = keys;
     pair->kemKeys = NULL;
     pair->kemCt = NULL;
+
+    return pair;
+}
+
+sslEphemeralKeyPair *
+ssl_NewEphemeralKeyPair(const sslNamedGroupDef *group,
+                        SECKEYPrivateKey *privKey, SECKEYPublicKey *pubKey)
+{
+    sslKeyPair *keys;
+    sslEphemeralKeyPair *pair;
+
+    keys = ssl_NewKeyPair(privKey, pubKey);
+    if (!keys) {
+        return NULL;
+    }
+
+    pair = ssl_NewEphemeralKeyPairWithKeys(group, keys);
+    if (!pair) {
+        ssl_FreeKeyPair(keys);
+        return NULL; /* error already set */
+    }
 
     return pair;
 }
@@ -4260,6 +4294,7 @@ ssl_NewSocket(PRBool makeLocks, SSLProtocolVariant protocolVariant)
     ss->opt = ssl_defaults;
     if (protocolVariant == ssl_variant_datagram) {
         ss->opt.enableRenegotiation = SSL_RENEGOTIATE_NEVER;
+        ss->opt.suppressEndOfEarlyData = PR_FALSE;
     }
     ss->opt.useSocks = PR_FALSE;
     ss->opt.noLocks = !makeLocks;
@@ -4398,6 +4433,7 @@ struct {
     EXP(DestroyAead),
     EXP(DestroyMaskingContext),
     EXP(DestroyResumptionTokenInfo),
+    EXP(EnablePlaintextResumptionExport),
     EXP(EnableTls13BackendEch),
     EXP(EnableTls13GreaseEch),
     EXP(SetTls13GreaseEchSize),
@@ -4572,6 +4608,26 @@ SSLExp_SetResumptionTokenCallback(PRFileDesc *fd,
 }
 
 SECStatus
+SSLExp_EnablePlaintextResumptionExport(PRFileDesc *fd, PRBool enabled)
+{
+    sslSocket *ss = ssl_FindSocket(fd);
+
+    if (!ss) {
+        SSL_DBG(("%d: SSL[%d]: bad socket in SSL_EnablePlaintextResumptionExport",
+                 SSL_GETPID(), fd));
+        return SECFailure;
+    }
+
+    ssl_Get1stHandshakeLock(ss);
+    ssl_GetSSL3HandshakeLock(ss);
+    ss->opt.enablePlaintextResumptionExport = enabled;
+    ssl_ReleaseSSL3HandshakeLock(ss);
+    ssl_Release1stHandshakeLock(ss);
+
+    return SECSuccess;
+}
+
+SECStatus
 SSLExp_SetResumptionToken(PRFileDesc *fd, const PRUint8 *token,
                           unsigned int len)
 {
@@ -4595,8 +4651,7 @@ SSLExp_SetResumptionToken(PRFileDesc *fd, const PRUint8 *token,
 
     // We override any previously set session.
     if (ss->sec.ci.sid) {
-        ssl_FreeSID(ss->sec.ci.sid);
-        ss->sec.ci.sid = NULL;
+        ssl_SetSocketSID(ss, NULL);
     }
 
     PRINT_BUF(50, (ss, "incoming resumption token", token, len));
@@ -4607,7 +4662,7 @@ SSLExp_SetResumptionToken(PRFileDesc *fd, const PRUint8 *token,
     }
 
     /* Populate NewSessionTicket values */
-    SECStatus rv = ssl_DecodeResumptionToken(sid, token, len);
+    SECStatus rv = ssl_DecodeResumptionToken(ss, sid, token, len);
     if (rv != SECSuccess) {
         // If decoding fails, we assume the token is bad.
         PORT_SetError(SSL_ERROR_BAD_RESUMPTION_TOKEN_ERROR);
@@ -4631,7 +4686,7 @@ SSLExp_SetResumptionToken(PRFileDesc *fd, const PRUint8 *token,
     sid->cached = in_external_cache;
     sid->lastAccessTime = ssl_Time(ss);
 
-    ss->sec.ci.sid = sid;
+    ssl_SetSocketSID(ss, sid);
 
     ssl_ReleaseSSL3HandshakeLock(ss);
     ssl_Release1stHandshakeLock(ss);
@@ -4673,13 +4728,26 @@ SSLExp_GetResumptionTokenInfo(const PRUint8 *tokenData, unsigned int tokenLen,
     SSLResumptionTokenInfo token;
 
     /* Populate sid values */
-    if (ssl_DecodeResumptionToken(&sid, tokenData, tokenLen) != SECSuccess) {
+    if (ssl_DecodeResumptionToken(NULL, &sid, tokenData, tokenLen) != SECSuccess) {
         // If decoding fails, we assume the token is bad.
+        ssl_DestroySID(&sid, PR_FALSE);
         PORT_SetError(SSL_ERROR_BAD_RESUMPTION_TOKEN_ERROR);
         return SECFailure;
     }
 
-    token.peerCert = CERT_DupCertificate(sid.peerCert);
+    /* |sid| only holds the peer certificate as DER; SSLResumptionTokenInfo is
+     * a public struct that hands out a CERTCertificate, so make one here. */
+    if (sid.peerCertDER.data) {
+        token.peerCert = CERT_NewTempCertificate(NULL, /* dbHandle */
+                                                 &sid.peerCertDER,
+                                                 NULL, PR_FALSE, PR_TRUE);
+        if (!token.peerCert) {
+            ssl_DestroySID(&sid, PR_FALSE);
+            return SECFailure;
+        }
+    } else {
+        token.peerCert = NULL;
+    }
 
     token.alpnSelectionLen = sid.u.ssl3.alpnSelection.len;
     token.alpnSelection = PORT_ZAlloc(token.alpnSelectionLen);

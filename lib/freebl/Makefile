@@ -219,6 +219,12 @@ ifeq ($(CPU_ARCH),riscv64)
             EXTRA_SRCS += aes-riscv64zvkn.c ghash-riscv64zvkg.c sha256-riscv64zvknh.c
         endif
     endif
+    ifneq (,$(filter -DHAVE_PLATFORM_GHASH,$(DEFINES)))
+    ifndef USE_STUB_BUILD
+        DEFINES += -DHAVE_PLATFORM_GCM
+        EXTRA_SRCS += riscv64-gcm-wrap.c
+    endif
+    endif
 endif
 
 ifeq (,$(filter-out WINNT,$(OS_TARGET)))
@@ -890,5 +896,6 @@ endif # x86_64
 ifeq ($(CPU_ARCH),riscv64)
 $(OBJDIR)$(PROG_PREFIX)aes-riscv64zvkn$(OBJ_SUFFIX): CFLAGS += -march=rv64gcv_zvkned
 $(OBJDIR)$(PROG_PREFIX)ghash-riscv64zvkg$(OBJ_SUFFIX): CFLAGS += -march=rv64gcv_zvkg
+$(OBJDIR)/$(PROG_PREFIX)riscv64-gcm-wrap$(OBJ_SUFFIX): CFLAGS += -march=rv64gcv_zvkned_zvkg_zvkb
 $(OBJDIR)$(PROG_PREFIX)sha256-riscv64zvknh$(OBJ_SUFFIX): CFLAGS += -march=rv64gcv_zvknhb_zvkb
 endif

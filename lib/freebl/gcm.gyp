@@ -89,6 +89,14 @@
             'HAVE_PLATFORM_GCM'
           ],
         }],
+        [ 'disable_rv64zvkn==0 and target_arch=="riscv64"', {
+          'dependencies': [
+            'riscv64-gcm-wrap.gyp:riscv64-gcm-wrap-nodepend_c_lib',
+          ],
+          'defines': [
+            'HAVE_PLATFORM_GCM'
+          ],
+        }],
       ],
     },
     {
@@ -113,6 +121,14 @@
         [ '(target_arch=="arm64" or target_arch=="aarch64") and OS!="win"', {
           'dependencies': [
             'aarch64-gcm-wrap.gyp:aarch64-gcm-wrap_c_lib',
+          ],
+          'defines': [
+            'HAVE_PLATFORM_GCM'
+          ],
+        }],
+        [ 'disable_rv64zvkn==0 and target_arch=="riscv64"', {
+          'dependencies': [
+            'riscv64-gcm-wrap.gyp:riscv64-gcm-wrap_c_lib',
           ],
           'defines': [
             'HAVE_PLATFORM_GCM'

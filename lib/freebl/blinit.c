@@ -51,6 +51,7 @@ static PRBool rv_zvkned_support_ = PR_FALSE;
 static PRBool rv_zvknha_support_ = PR_FALSE;
 static PRBool rv_zvknhb_support_ = PR_FALSE;
 static PRBool rv_zvkg_support_ = PR_FALSE;
+static PRBool rv_zvkb_support_ = PR_FALSE;
 
 #ifdef NSS_X86_OR_X64
 /*
@@ -466,6 +467,7 @@ CheckRVSupport()
             rv_zvkg_support_ = PR_TRUE;
         }
         if (probe[0].value & RISCV_HWPROBE_EXT_ZVKB) {
+            rv_zvkb_support_ = PR_TRUE;
             if (probe[0].value & RISCV_HWPROBE_EXT_ZVKNHA) {
                 // SHA256 only
                 rv_zvknha_support_ = PR_TRUE;
@@ -574,6 +576,11 @@ PRBool
 rv_zvkg_support()
 {
     return rv_zvkg_support_;
+}
+PRBool
+rv_zvkb_support()
+{
+    return rv_zvkb_support_;
 }
 
 #if defined(__powerpc__)

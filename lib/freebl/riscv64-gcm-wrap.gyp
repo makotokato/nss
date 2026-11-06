@@ -1,0 +1,44 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+{
+  'includes': [
+    '../../coreconf/config.gypi'
+  ],
+  'target_defaults': {
+    'type': 'static_library',
+    'sources': [
+      'riscv64-gcm-wrap.c',
+    ],
+    'dependencies': [
+      '<(DEPTH)/exports.gyp:nss_exports'
+    ],
+    'cflags': [
+      '-march=rv64gcv_zvkned_zvkg_zvkb',
+    ],
+    'cflags_mozilla': [
+      '-march=rv64gcv_zvkned_zvkg_zvkb',
+    ],
+    'conditions': [
+      [ 'OS=="linux"', {
+        'defines': [
+          'FREEBL_NO_DEPEND',
+        ],
+      }],
+    ],
+  },
+  'targets': [
+    {
+      'target_name': 'riscv64-gcm-wrap-nodepend_c_lib',
+    },
+    {
+      'target_name': 'riscv64-gcm-wrap_c_lib',
+      'defines!': [
+        'FREEBL_NO_DEPEND',
+      ],
+    },
+  ],
+  'variables': {
+    'module': 'nss',
+  }
+}
